@@ -24,8 +24,8 @@ Deploying it
 1. Create the secret
 
    ```
-   gsutil cp gs://github-probots_secrets/issuefeat-secret.yaml /tmp
-   kubectl -n issuefeat apply -f /tmp/issuefeat-secret.yaml
+   gsutil cp gs://issue-embedding-secrets/.issuefeat-secret.yaml /tmp
+   kubectl -n issuefeat apply -f /tmp/.issuefeat-secret.yaml
    ```
 
 1. Create the ingress

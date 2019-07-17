@@ -2,11 +2,10 @@
 [![Powered-By-Fast-AI](https://img.shields.io/badge/fastai%20v1.5.3%20%20-blueviolet.svg?logo=github)](https://github.com/fastai/fastai/tree/69231e6026b7fcbe5b67ab4eaa23d19be3ea0659)
 [![Weights-And-Biases](https://img.shields.io/badge/Weights%20&%20Biases-black.svg?logo=google-analytics)](https://app.wandb.ai/github/issues_lang_model)
 
-# A Language Model Trained On 16M+ GitHub Issues For Transfer Learning
 
-**Motivation:**  [Issue Label Bot](https://github.com/machine-learning-apps/Issue-Label-Bot) predicts 3 generic issue labels: `bug`, `feature request` and `question`.  However, it would be nice to predict personalized issue labels instead of generic ones.  To accomplish this, we can use the issues that are already labeled in a repository as training data for a model that can predict personalized issue labels.  One challenge with this approach is there is often a small number of labeled issues in each repository.  In order to mitigate this concern, we utilize [transfer-learning](http://nlp.fast.ai/) by training a language trained over 16 million GitHub Issues and fine-tune this to predict issue labels.
+# An API that returns embeddings from GitHub Issue Text.
 
-# End-Product: An API that returns embeddings from GitHub Issue Text.
+Embeddings are learned from a [language model Trained On 16M+ GitHub Issues](#a-language-model-trained-on-16m+-github-issues-for-transfer-learning).  
 
 The manifest files in [/deployment](/deployment) define a service that will return 2400 dimensional embeddings given the text of an issue.  The api endpoints are hosted on https://gh-issue-labeler.com/
 
@@ -39,6 +38,10 @@ All routes expect `POST` requests with a header containing a `Token` field. Belo
 
 
 2. `https://embeddings.gh-issue-labeler.com//all_issues/<owner>/<repo>` :construction: this will return a numpy array of the shape (# of labeled issues in repo, 2400), as well a list of all the labels for each issue.  This endpoint is still under construction.
+
+# A Language Model Trained On 16M+ GitHub Issues For Transfer Learning
+
+**Motivation:**  [Issue Label Bot](https://github.com/machine-learning-apps/Issue-Label-Bot) predicts 3 generic issue labels: `bug`, `feature request` and `question`.  However, it would be nice to predict personalized issue labels instead of generic ones.  To accomplish this, we can use the issues that are already labeled in a repository as training data for a model that can predict personalized issue labels.  One challenge with this approach is there is often a small number of labeled issues in each repository.  In order to mitigate this concern, we utilize [transfer-learning](http://nlp.fast.ai/) by training a language trained over 16 million GitHub Issues and fine-tune this to predict issue labels.
 
 # Training the Language Model
 
