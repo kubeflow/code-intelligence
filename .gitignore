@@ -9,3 +9,4 @@
 **/flask_session
 build/**
 fairing/__pycache__/**
+**/__pycache__/**
