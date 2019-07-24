@@ -84,10 +84,10 @@ def get_issue_text(num, idx, owner, repo, skip_issue=True):
     return {'title':title,
             'url':url,
             'body': body,
-            'labels': labels}
+            'labels': labels,
+            'num': num}
 
-def get_all_issue_text(owner, repo, inf_wrapper, workers=64, min_freq=25):
-    c = Counter()
+def get_all_issue_text(owner, repo, inf_wrapper, workers=64):
     # prepare list of issue nums
     owner=owner
     repo=repo
@@ -100,32 +100,27 @@ def get_all_issue_text(owner, repo, inf_wrapper, workers=64, min_freq=25):
 
     for issue in issues:
         if issue:
-            c.update(issue['labels'])
             filtered_issues.append(issue)
-
-    frequent_issues = [x for x in c if c[x] >= min_freq]
 
     print(f'Retrieved {len(filtered_issues)} issues.')
 
-    # only retain top n issues
     features = []
     labels = []
+    nums = []
     for issue in tqdm(filtered_issues):
-        lbls = [i for i in issue['labels'] if i in frequent_issues]
-        if lbls:
-            labels.append(lbls)
-            # calculate embedding
-            text = inf_wrapper.process_dict(issue)['text']
-            feature = inf_wrapper.get_pooled_features(text).detach().cpu()
-            # only need the first 1600 dimensions
-            features.append(feature[:, :1600])
-
-    print(f'{len(features)} issues remaining after minimum frequency filter of {min_freq}.')
+        labels.append(issue['labels'])
+        nums.append(issue['num'])
+        # calculate embedding
+        text = inf_wrapper.process_dict(issue)['text']
+        feature = inf_wrapper.get_pooled_features(text).detach().cpu()
+        # only need the first 1600 dimensions
+        features.append(feature[:, :1600])
 
     assert len(features) == len(labels), 'Error you have mismatch b/w number of observations and labels.'
 
     return {'features':torch.cat(features).numpy(),
-            'labels': labels}
+            'labels': labels,
+            'nums': nums}
 
 def pass_through(x):
     return x
