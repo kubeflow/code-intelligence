@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 import requests
 from fastai.core import parallel, partial
 from collections import Counter
-from tqdm import tqdm_notebook
+from tqdm import tqdm
 import torch
 import pandas as pd
 from inference import InferenceWrapper
@@ -23,7 +23,7 @@ def find_max_issue_num(owner, repo):
     r = requests.get(url)
     if not r.ok:
         r.raise_for_status()
-    soup = BeautifulSoup(r.content)
+    soup = BeautifulSoup(r.content, 'html.parser')
     # get grey text under issue preview cards
     issue_meta = soup.find('span', class_="opened-by").text
     # parse the first issue number visible, which is also the highest issue number
@@ -66,7 +66,7 @@ def get_issue_text(num, idx, owner, repo, skip_issue=True):
             return None
         raise Exception(f'{url} is not an issue.')
 
-    soup = BeautifulSoup(requests.get(url).content)
+    soup = BeautifulSoup(requests.get(url).content, 'html.parser')
     title_find = soup.find("span", class_="js-issue-title")
     body_find = soup.find("td", class_="js-comment-body")
     label_find = soup.find(class_='js-issue-labels')
@@ -110,7 +110,7 @@ def get_all_issue_text(owner, repo, inf_wrapper, workers=64, min_freq=25):
     # only retain top n issues
     features = []
     labels = []
-    for issue in tqdm_notebook(filtered_issues):
+    for issue in tqdm(filtered_issues):
         lbls = [i for i in issue['labels'] if i in frequent_issues]
         if lbls:
             labels.append(lbls)
