@@ -12,6 +12,9 @@ import json
 TOKEN_NAME = "GITHUB_TOKEN"
 PULL_REQUEST_TYPE = "PullRequest"
 
+# TODO(jlewi): Rewrite this code to use:
+#  i) graphql.unpack_and_split_nodes
+#  ii) graphql.shard_writer
 def process_notification(n):
   # Mark as read anything that isn't an explicit mention.
   # For PRs there doesn't seem like a simple way to detect if the notice
