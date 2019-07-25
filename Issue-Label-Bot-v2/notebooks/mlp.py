@@ -88,27 +88,23 @@ class MLP:
                            'count': max_range_count})
         return df, max_range_count
 
-    def calculate_argmax_result(self, y_true, y_pred, prob_thre=None):
+    def calculate_result(self, y_true, y_pred, prob_thre=None):
         if prob_thre:
             self.prob_thre = prob_thre
-
-        y_pred_argmax = np.argmax(y_pred, axis=1)
-        y_pred_prob = np.max(y_pred, axis=1)
 
         total_true = np.array([0] * len(y_pred[0]))
         total_pred_true = np.array([0] * len(y_pred[0]))
         pred_correct = np.array([0] * len(y_pred[0]))
-        for i in range(len(y_pred_argmax)):
+        for i in range(len(y_pred)):
             y_true_label = np.where(y_true[i] == 1)[0]
             total_true[y_true_label] += 1
 
-            if y_pred_prob[i] < self.prob_thre:
-                continue
+            y_pred_true = np.where(y_pred[i] >= self.prob_thre)[0]
+            total_pred_true[y_pred_true] += 1
 
-            pred_label = y_pred_argmax[i]
-            if pred_label in y_true_label:
-                pred_correct[pred_label] += 1
-            total_pred_true[pred_label] += 1
+            for j in y_true_label:
+                if j in y_pred_true:
+                    pred_correct[j] += 1
 
         self.precision = pred_correct / total_pred_true
         self.recall = pred_correct / total_true
@@ -126,7 +122,7 @@ class MLP:
         print(f'Precision threshold: {self.precision_thre}\nRecall threshold:{self.recall_thre}')
         thre = 0.0
         while thre < 1:
-            _, prec, reca = self.calculate_argmax_result(y_true, y_pred, prob_thre=thre)
+            _, prec, reca = self.calculate_result(y_true, y_pred, prob_thre=thre)
 
             pc = 0
             for p in prec:
