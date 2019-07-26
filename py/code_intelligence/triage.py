@@ -65,7 +65,7 @@ class TriageInfo(object):
           if project_cards:
             info.missing_project = False
 
-      if name.startswith("area") or name.startswith("communit"):
+      if name.startswith("area") or name.startswith("community"):
         info.missing_area= False
 
     for c in project_cards:
