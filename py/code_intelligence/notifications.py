@@ -19,8 +19,13 @@ def process_notification(n):
   # Mark as read anything that isn't an explicit mention.
   # For PRs there doesn't seem like a simple way to detect if the notice
   # is because the state changed
+  #
+  # We exclude mentions on PR because that gets overwhelmed by "/assign"
+  # statements. We should potentially be more discerning and not mark the
+  # notification as read for PRs which aren't assigned to the user.
   if n.reason == "mention":
-    return
+    if n.subject.get("type") != "PullRequest":
+      return
 
   title = n.subject.get("title")
   logging.info("Marking as read: type: %s reason: %s title: %s",
