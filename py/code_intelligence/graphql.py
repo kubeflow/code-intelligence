@@ -1,6 +1,7 @@
 """This module contains utilities for working with GitHub's graphql API"""
 from code_intelligence import util
 import logging
+import json
 import os
 import requests
 
@@ -79,5 +80,6 @@ class ShardWriter(object):
       self.output_dir,
       self.prefix + "-{0:03d}-of-{1:03d}.json".format(
         self.shard, self.total_shards))
-    util.write_items_to_json(shard_file, items)
+    with open(shard_file, "w") as hf:
+      hf.write(json.dumps(items, indent=2))
     self.shard += 1

@@ -1,6 +1,8 @@
 """Identify issues that need triage."""
 from code_intelligence import graphql
 from code_intelligence import util
+import datetime
+from dateutil import parser as dateutil_parser
 import fire
 import json
 import logging
@@ -30,13 +32,17 @@ class TriageInfo(object):
   """Class describing whether an issue needs triage"""
   def __init__(self):
     self.issue = None
-    # Booleans indicating why triage might fail
-    self.missing_kind = True
-    self.missing_priority = True
-    self.missing_project = True
-    self.missing_area = True
 
     self.triage_project_card = None
+
+    # The times of various events
+    self.kind_time = None
+    self.priority_time = None
+    self.project_time = None
+    self.area_time = None
+    self.closed_at = None
+
+    self.requires_project = False
 
   @classmethod
   def from_issue(cls, issue):
@@ -48,47 +54,62 @@ class TriageInfo(object):
     project_cards = graphql.unpack_and_split_nodes(issue,
                                                    ["projectCards", "edges"])
 
+    events = graphql.unpack_and_split_nodes(issue,
+                                            ["timelineItems", "edges"])
 
     for l in labels:
       name = l["name"]
 
-      if name in ALLOWED_KINDS:
-        info.missing_kind = False
-
       if name in ALLOWED_PRIORITY:
-        info.missing_priority = False
-
-        if not name in REQUIRES_PROJECT:
-          info.missing_project = False
-        else:
-          if project_cards:
-            info.missing_project = False
-
-      if name.startswith("area") or name.startswith("community"):
-        info.missing_area= False
+        info.requires_project = name in REQUIRES_PROJECT
 
     for c in project_cards:
       if c.get("project").get("name") == TRIAGE_PROJECT:
         info.triage_project_card = c
         break
 
+    # TODO(jlewi): Could we potentially miss some events since we aren't
+    # paginating through all events for an issue?
+    for e in events:
+
+      if not "createdAt" in e:
+        continue
+
+      t = dateutil_parser.parse(e.get("createdAt"))
+
+      if e.get("__typename") == "LabeledEvent":
+        name = e.get("label").get("name")
+
+        if name in ALLOWED_KINDS or name.startswith("community"):
+          if info.kind_time:
+            continue
+          info.kind_time = t
+
+        if name.startswith("area"):
+          if info.area_time:
+            continue
+          info.area_time = t
+
+        if name in ALLOWED_PRIORITY:
+          if info.priority_time:
+            continue
+          info.priority_time = t
+
+      if e.get("__typename") == "AddedToProjectEvent":
+        if info.project_time:
+          continue
+        info.project_time = t
+
+    if issue.get("closedAt"):
+      info.closed_at = dateutil_parser.parse(issue.get("closedAt"))
+
     return info
 
   def __eq__(self, other):
-    if self.missing_kind != other.missing_kind:
-      return False
-
-    if self.missing_priority != other.missing_priority:
-      return False
-
-    if self.missing_project != other.missing_project:
-      return False
-
-    if self.missing_area != other.missing_area:
-      return False
-
-    if self.in_triage_project != other.in_triage_project:
-      return False
+    for f in ["kind_time", "priority_time", "project_time", "area_time",
+              "closed_at", "in_triage_project", "requires_project"]:
+      if getattr(self, f) != getattr(other, f):
+        return False
 
     if self.in_triage_project:
       if self.triage_project_card["id"] != other.triage_project_card["id"]:
@@ -98,34 +119,32 @@ class TriageInfo(object):
   @property
   def needs_triage(self):
     """Return true if the issue needs triage"""
-    needs = False
-
     # closed issues don't need triage
     if self.issue["state"].lower() == "closed":
       return False
 
-    if self.missing_kind:
-      needs = True
+    # If any events are missing then we need triage
+    for f in ["kind_time", "priority_time", "area_time"]:
+      if not getattr(self, f):
+        return True
 
-    if self.missing_priority:
-      needs = True
+    if self.requires_project and not self.project_time:
+      return True
 
-    if self.missing_project:
-      needs = True
-
-    if self.missing_area:
-      needs = True
-
-    return needs
+    return False
 
   def __repr__(self):
     pieces = ["needs_triage={0}".format(self.needs_triage)]
 
-    if self.needs_triage:
-      for f in ["missing_kind", "missing_area", "missing_priority",
-                "missing_project"]:
-        v = getattr(self, f)
-        pieces.append("{0}={1}".format(f, v))
+    for f in ["kind_time", "priority_time", "project_time", "area_time",
+              "closed_at", "in_triage_project"]:
+      v = getattr(self, f)
+      if not v:
+        continue
+
+      if isinstance(v, datetime.datetime):
+        v = v.isoformat()
+      pieces.append("{0}={1}".format(f, v))
 
     return ";".join(pieces)
 
@@ -138,19 +157,44 @@ class TriageInfo(object):
     if self.needs_triage:
       lines.append("Issue needs triage:")
 
-    if self.missing_kind:
+    if not self.kind_time:
       lines.append("\t Issue needs one of the labels {0}".format(ALLOWED_KINDS))
 
-    if self.missing_priority:
+    if not self.priority_time:
       lines.append("\t Issue needs one of the priorities {0}".format(ALLOWED_PRIORITY))
 
-    if self.missing_area:
+    if not self.area_time:
       lines.append("\t Issue needs an area label")
 
-    if self.missing_project:
+    if self.requires_project and not self.project_time:
       lines.append("\t Issues with priority in {0} need to be assigned to a project".format(REQUIRES_PROJECT))
 
     return "\n".join(lines)
+
+  @property
+  def triaged_at(self):
+    """Returns a datetime representing the time it was triage or None."""
+    if self.needs_triage:
+      return None
+
+    # Determine whether issue was triaged by being closed or not
+    events = [self.kind_time,
+              self.priority_time,
+              self.area_time]
+
+    if self.requires_project:
+      events.append(self.project_time)
+
+    has_all_events = True
+    for e in events:
+      if not e:
+        has_all_events = False
+
+    if has_all_events:
+      events = sorted(events)
+      return events[-1]
+    else:
+      return self.closed_at
 
   @property
   def in_triage_project(self):
@@ -167,7 +211,7 @@ class IssueTriage(object):
 
     return self._client
 
-  def _iter_issues(self, org, repo, output=None):
+  def _iter_issues(self, org, repo, issue_filter=None, output=None):
     """Iterate over issues in batches for a repository
 
     Args:
@@ -175,6 +219,8 @@ class IssueTriage(object):
       repo: The directory for the repository
       output: The directory to write the results; if not specified results
         are not downloaded
+      issue_filter: Used to filter issues to consider based on when they were
+        last updated
 
     Writes the issues along with the first comments to a file in output
     directory.
@@ -183,60 +229,112 @@ class IssueTriage(object):
 
     num_issues_per_page = 100
 
-    # TODO(jlewi):Use query variables
-    # TODO(jlewi):
-    query_template = """{{
-repository(owner: "{org}", name: "{repo}") {{
-  issues(first:{num_issues_per_page}, states: OPEN, {issues_cursor}) {{
-    totalCount
-    pageInfo {{
-      endCursor
-      hasNextPage
-    }}
-    edges{{
-      node {{
-        author {{
-          __typename
-                ... on User {{
-                  login
-                }}
+    if not issue_filter:
+      today = datetime.datetime.now()
+      today = datetime.datetime(year=today.year, month=today.month, day=today.day)
 
-                ... on Bot{{
-                  login
-                }}
-        }}
-        id
-        title
-        body
-        url
-        state
-        labels(first:30, ){{
-          totalCount
-          edges {{
-            node {{
-              name
-            }}
-          }}
-        }}
-        projectCards(first:30, ){{
-          totalCount
-          edges {{
-            node {{
-              id
-              project {{
+      start_time = today - datetime.timedelta(days=60)
+
+    # Labels and projects are available via timeline events.
+    # However, in timeline events project info (e.g. actual project name)
+    # is only in developer preview.
+    # The advantage of using labels and projectCards (as opposed to timeline
+    # events) is that its much easier to bound the number of items we need
+    # to fetch in order to return all labels and projects
+    # for timeline items its much more likely the labels and projects we care
+    # about will require pagination.
+    #
+    # TODO(jlewi): We should add a method to fetch all issue timeline items
+    # via pagination in the case the number of items exceeds the page size.
+    #
+    # TODO(jlewi): We need to consider closed issues if we want to compute
+    # stats.
+    #
+    # TODO(jlewi): We should support fetching only OPEN issues; if we are
+    # deciding which issues need triage or have been triaged we really only
+    # need to look at open isues. Closed Issues will automatically move to
+    # the appropriate card in the Kanban board.
+    query = """query getIssues($org: String!, $repo: String!, $pageSize: Int, $issueCursor: String, $filter: IssueFilters) {
+  repository(owner: $org, name: $repo) {
+    issues(first: $pageSize, filterBy: $filter, after: $issueCursor) {
+      totalCount
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      edges {
+        node {
+          author {
+            __typename
+            ... on User {
+              login
+            }
+            ... on Bot {
+              login
+            }
+          }
+          id
+          title
+          body
+          url
+          state
+          createdAt
+          closedAt
+          labels(first: 30) {
+            totalCount
+            edges {
+              node {
                 name
-                number
-              }}
-            }}
-          }}
-        }}
-      }}
-    }}
-  }}
-}}
-}}
-"""
+              }
+            }
+          }
+          projectCards(first: 30) {
+            totalCount
+            pageInfo {
+              endCursor
+              hasNextPage
+            }
+            edges {
+              node {
+                id
+                project {
+                  name
+                  number
+                }
+              }
+            }
+          }
+          timelineItems(first: 30) {
+            totalCount
+            pageInfo {
+              endCursor
+              hasNextPage
+            }
+            edges {
+              node {
+                __typename
+                ... on AddedToProjectEvent {
+                  createdAt
 
+                }
+                ... on LabeledEvent {
+                  createdAt
+                  label {
+                    name
+                  }
+                }
+                ... on ClosedEvent {
+                  createdAt
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
 
     shard = 0
     num_pages = None
@@ -249,14 +347,23 @@ repository(owner: "{org}", name: "{repo}") {{
     # after errors
     issues_cursor = None
     shard_writer = None
+
+    if not issue_filter:
+      start_time = datetime.datetime.now() - datetime.timedelta(weeks=24)
+      issue_filter = {
+        "since": start_time.isoformat(),
+      }
+
     while has_next_issues_page:
-      issues_cursor_text = ""
-      if issues_cursor:
-        issues_cursor_text = "after:\"{0}\"".format(issues_cursor)
-      query = query_template.format(org=org, repo=repo,
-                                    num_issues_per_page=num_issues_per_page,
-                                    issues_cursor=issues_cursor_text)
-      results = client.run_query(query)
+
+      variables = {
+        "org": org,
+        "repo": repo,
+        "pageSize": num_issues_per_page,
+        "issueCursor": issues_cursor,
+        "filter": issue_filter,
+      }
+      results = client.run_query(query, variables=variables)
 
       if results.get("errors"):
         message = json.dumps(results.get("errors"))
@@ -286,18 +393,32 @@ repository(owner: "{org}", name: "{repo}") {{
       issues_cursor = page_info["endCursor"]
       has_next_issues_page = page_info["hasNextPage"]
 
-  def _issue_needs_triage(self, issue):
-    """Check if the supplied issue needs triage.
+
+  def download_issues(self, repo, output, issue_filter=None):
+    """Download the issues to the specified directory
 
     Args:
-      issue: json dictionary describing the issue
-
-    Returns:
-      triage_info: Instance of TriageInfo explaining whether the issue needs
-        triage
+      repo: Repository in the form {org}/{repo}
     """
 
-  def triage(self, repo, output=None):
+    org, repo_name = repo.split("/")
+
+    for shard_index, shard in enumerate(self._iter_issues(org, repo_name,
+                                                          output=output,
+                                                          issue_filter=None)):
+      logging.info("Wrote shard %s", shard_index)
+
+  def _build_dataframes(self, issues_dir):
+    """Build dataframes containing triage info.
+
+    Args:
+      issues_dir: The directory containing issues
+
+    Returns:
+      data:
+    """
+
+  def triage(self, repo, output=None, **kwargs):
     """Triage issues in the specified repository.
 
     Args:
@@ -306,7 +427,9 @@ repository(owner: "{org}", name: "{repo}") {{
     """
     org, repo_name = repo.split("/")
 
-    for shard_index, shard in enumerate(self._iter_issues(org, repo_name, output=output)):
+    for shard_index, shard in enumerate(self._iter_issues(org, repo_name,
+                                                          output=output,
+                                                          **kwargs)):
       logging.info("Processing shard %s", shard_index)
       for i in shard:
         self._process_issue(i)

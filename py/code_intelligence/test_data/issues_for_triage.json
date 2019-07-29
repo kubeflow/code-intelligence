@@ -1,3 +1,140 @@
-{"author": {"__typename": "User", "login": "jlewi"}, "title": "Doesn't need triage", "body": "", "url": "https://github.com/kubeflow/kubeflow/issues/365", "labels": {"totalCount": 2, "edges": [{"node": {"name": "kind/bug"}}, {"node": {"name": "area/jupyter"}}, {"node": {"name": "priority/p1"}}]}, "projectCards": {"totalCount": 1, "edges": [{"node": {"project": {"name": "0.2 Release", "number": 2}}}, {"node": {"id": "12ab", "project": {"name": "Needs Triage", "number": 26}}}]}}
-{"author": {"__typename": "User", "login": "jlewi"}, "title": "Needs triage; missing everything", "body": "", "url": "https://github.com/kubeflow/kubeflow/issues/365", "labels": {"totalCount": 2, "edges": []}, "projectCards": {"totalCount": 1, "edges": []}}
-{"author": {"__typename": "User", "login": "jlewi"}, "title": "Needs triage; missing projectCards", "body": "", "url": "https://github.com/kubeflow/kubeflow/issues/365", "labels": {"totalCount": 2, "edges": []}}
+[
+  {
+    "author": {
+      "__typename": "User",
+      "login": "jlewi"
+    },
+    "id": "MDU6SXNzdWU0NjgxNzg2NzU=",
+    "title": "Doesn't need triage",
+    "body": "I think it would be highly useful if people could specify a GitHub project to tag issues into based on the label.\r\n\r\nThis would make it easy for people to take advantage of GitHub projects for triaging issues.\r\n\r\nNewly tagged issues would go into the TODO column. Humans could then use that column to track which issues still need to be manually reviewed and move them to appropriate columns.",
+    "url": "https://github.com/kubeflow/code-intelligence/issues/2",
+    "state": "OPEN",
+    "labels": {
+      "totalCount": 2,
+      "edges": [
+        {
+          "node": {
+            "name": "area/jupyter"
+          }
+        },
+        {
+          "node": {
+            "name": "priority/p1"
+          }
+        },
+        {
+          "node": {
+            "name": "kind/bug"
+          }
+        }
+      ]
+    },
+    "projectCards": {
+      "totalCount": 1,
+      "pageInfo": {
+        "endCursor": "Y3Vyc29yOnYyOpHOAW3UwQ==",
+        "hasNextPage": false
+      },
+      "edges": [
+        {
+          "node": {
+            "id": "12ab=",
+            "project": {
+              "name": "engprod-v06",
+              "number": 13
+            }
+          }
+        }
+      ]
+    },
+    "timelineItems": {
+      "totalCount": 8,
+      "pageInfo": {
+        "endCursor": "Y3Vyc29yOnYyOpPPAAABa_Zo7QABqjI0ODM0NTg2NjI=",
+        "hasNextPage": false
+      },
+      "edges": [
+        {
+          "node": {
+            "__typename": "LabeledEvent",
+            "createdAt": "2019-07-15T15:01:43Z",
+            "label": {
+              "name": "help wanted"
+            }
+          }
+        },
+        {
+          "node": {
+            "__typename": "LabeledEvent",
+            "createdAt": "2019-07-15T15:01:43Z",
+            "label": {
+              "name": "priority/p1"
+            }
+          }
+        },
+        {
+          "node": {
+            "__typename": "AddedToProjectEvent",
+            "createdAt": "2019-07-15T15:05:31Z"
+          }
+        },
+        {
+          "node": {
+            "__typename": "LabeledEvent",
+            "createdAt": "2019-07-16T15:01:43Z",
+            "label": {
+              "name": "kind/bug"
+            }
+          }
+        },
+        {
+          "node": {
+            "__typename": "LabeledEvent",
+            "createdAt": "2019-08-16T15:01:43Z",
+            "label": {
+              "name": "area/jupyter"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "author": {
+      "__typename": "User",
+      "login": "jlewi"
+    },
+    "id": "MDU6SXNzdWU0NzQ1OTQxNTg=",
+    "title": "No labels and no project cards",
+    "body": "This issue verifies we properly handle the case where we have no labels and projects",
+    "url": "https://github.com/kubeflow/code-intelligence/issues/25",
+    "state": "OPEN",
+    "labels": {
+      "totalCount": 0,
+      "edges": [
+      ]
+    },
+    "projectCards": {
+      "totalCount": 0,
+      "pageInfo": {
+        "endCursor": null,
+        "hasNextPage": false
+      },
+      "edges": []
+    },
+    "timelineItems": {
+      "totalCount": 1,
+      "pageInfo": {
+        "endCursor": "Y3Vyc29yOnYyOpPPAAABbEMgIbgAqTUxNjQyNTEyMA==",
+        "hasNextPage": false
+      },
+      "edges": [
+        {
+          "node": {
+            "__typename": "IssueComment"
+          }
+        }
+      ]
+    }
+  }
+]
