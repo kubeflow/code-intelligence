@@ -31,27 +31,6 @@ def find_max_issue_num(owner, repo):
     issue_num = issue_meta.strip().split('\n')[0][1:]
     return int(issue_num)
 
-def verify_issue(owner, repo, num):
-    """
-    Verify that owner/repo/issues/num exists.
-
-    Returns
-    -------
-    bool
-        True/False if issue exists.
-
-    Note that pull requests are also issues but will
-    get redirected with a status code 302, allowing
-    this function to return False.
-    """
-
-    url = f'https://github.com/{owner}/{repo}/issues/{num}'
-
-    if requests.head(url).status_code != 200:
-        return False
-    else:
-        return True
-
 def get_issue_text(num, idx, owner, repo, skip_issue=True):
     """
     Get the raw text of an issue body and label.
@@ -62,10 +41,10 @@ def get_issue_text(num, idx, owner, repo, skip_issue=True):
         {'title':str, 'body':str}
     """
     url = f'https://github.com/{owner}/{repo}/issues/{num}'
-    if not verify_issue(owner, repo, num):
+    if requests.head(url).status_code != 200:
         if skip_issue:
             return None
-        raise Exception(f'{url} is not an issue.')
+        raise Exception(f'Status code is not 200:\n{url} is not an issue.')
 
     soup = BeautifulSoup(requests.get(url).content, 'html.parser')
     title_find = soup.find("span", class_="js-issue-title")
@@ -95,11 +74,9 @@ def get_all_issue_text(owner, repo, inf_wrapper, workers=64):
     Returns
     ------
     dict
-        {'features':nparray, 'labels':nparray, 'nums':nparray}
+        {'features':list, 'labels':list, 'nums':list}
     """
     # prepare list of issue nums
-    owner=owner
-    repo=repo
     max_num = find_max_issue_num(owner, repo)
 
     get = partial(get_issue_text, owner=owner, repo=repo, skip_issue=True)
@@ -135,16 +112,17 @@ def pass_through(x):
     """Avoid messages when the model is deserialized in fastai library."""
     return x
 
-def load_model_artifact():
+def load_model_artifact(model_url):
     """
     Download the pretrained language model from URL
+    Args:
+      model_url: URL to store the pretrained model
 
     Returns
     ------
     InferenceWrapper
         a wrapper for a Learner object in fastai.
     """
-    model_url = 'https://storage.googleapis.com/issue_label_bot/model/lang_model/models_22zkdqlr/trained_model_22zkdqlr.pkl'
     path = Path('./model_files')
     full_path = path/'model.pkl'
 

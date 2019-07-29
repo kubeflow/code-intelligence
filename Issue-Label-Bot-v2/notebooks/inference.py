@@ -50,7 +50,6 @@ class InferenceWrapper:
 
         return self.encoder.forward(seq_ints)[-1][-1]
 
-
     def get_pooled_features(self, x:str) -> Tensor:
         """Get concatenation of [mean, max, last] of last hidden state."""
         raw = self.get_raw_features(x)
