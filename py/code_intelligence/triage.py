@@ -2,7 +2,6 @@
 from code_intelligence import graphql
 from code_intelligence import util
 import fire
-import github3
 import json
 import logging
 import os
@@ -167,21 +166,6 @@ class IssueTriage(object):
       self._client = graphql.GraphQLClient()
 
     return self._client
-
-  def mark_read(self, user):
-    token = os.getenv(TOKEN_NAME)
-    if not token:
-      raise ValueError(("Environment variable {0} needs to be set to a GitHub "
-                        "token.").format(token))
-    client = github3.GitHub(username=user, token=token)
-    notifications = client.notifications()
-
-    # https://developer.github.com/v3/activity/notifications/
-    #
-    # How do we identify closed pull requests?
-    for n in notifications:
-      process_notification(n)
-
 
   def _iter_issues(self, org, repo, output=None):
     """Iterate over issues in batches for a repository
