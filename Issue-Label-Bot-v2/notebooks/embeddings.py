@@ -8,6 +8,7 @@ import pandas as pd
 from inference import InferenceWrapper
 from pathlib import Path
 from urllib import request as request_url
+import logging
 
 
 def find_max_issue_num(owner, repo):
@@ -88,6 +89,14 @@ def get_issue_text(num, idx, owner, repo, skip_issue=True):
             'num': num}
 
 def get_all_issue_text(owner, repo, inf_wrapper, workers=64):
+    """
+    Prepare embedding features of all issues in a given repository.
+
+    Returns
+    ------
+    dict
+        {'features':nparray, 'labels':nparray, 'nums':nparray}
+    """
     # prepare list of issue nums
     owner=owner
     repo=repo
@@ -102,7 +111,7 @@ def get_all_issue_text(owner, repo, inf_wrapper, workers=64):
         if issue:
             filtered_issues.append(issue)
 
-    print(f'Retrieved {len(filtered_issues)} issues.')
+    logging.info(f'Retrieved {len(filtered_issues)} issues.')
 
     features = []
     labels = []
@@ -123,15 +132,24 @@ def get_all_issue_text(owner, repo, inf_wrapper, workers=64):
             'nums': nums}
 
 def pass_through(x):
+    """Avoid messages when the model is deserialized in fastai library."""
     return x
 
 def load_model_artifact():
+    """
+    Download the pretrained language model from URL
+
+    Returns
+    ------
+    InferenceWrapper
+        a wrapper for a Learner object in fastai.
+    """
     model_url = 'https://storage.googleapis.com/issue_label_bot/model/lang_model/models_22zkdqlr/trained_model_22zkdqlr.pkl'
     path = Path('./model_files')
     full_path = path/'model.pkl'
 
     if not full_path.exists():
-        print('Loading model.')
+        logging.info('Loading model.')
         path.mkdir(exist_ok=True)
         request_url.urlretrieve(model_url, path/'model.pkl')
     return InferenceWrapper(model_path=path, model_file_name='model.pkl')
