@@ -10,7 +10,7 @@ We build these tools with the help of Kubeflow, in order to dog-food tools that 
 
 ### Deployed
 
-1. [Issue-Label-Bot-v1](https://github.com/marketplace/issue-label-bot): A GitHub App that automatically labels issues as either a feature request, bug or question, using machine learning. 
+1. [Issue-Label-Bot-v1](https://github.com/marketplace/issue-label-bot): A GitHub App that automatically labels issues as either a feature request, bug or question, using machine learning.  The code for this is located in [this repository](https://github.com/machine-learning-apps/Issue-Label-Bot)
 
 2. [Issue-Embeddings](/Issue-Embeddings): A REST-API that returns 2400 dimensional embedding given an issue title and body.  This can be used for several downstream applications such as (1) label prediction, (2) duplicate detection (3) reviewer recommendation, etc.  You can also retrieve the embeddings for all issues in a repo in bulk at once.
 
