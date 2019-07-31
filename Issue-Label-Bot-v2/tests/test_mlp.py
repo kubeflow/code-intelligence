@@ -52,7 +52,11 @@ def test_find_probability_thresholds():
     mlp_wrap = MLPWrapper(clf=mlp_clf, precision_threshold=precision_threshold,
                           recall_threshold=recall_threshold)
     mlp_wrap.find_probability_thresholds(X, y)
+    # thresholds is a dict {label_index: threshold}
+    # if value of threshold is None, the label should not be predicted
+    # because it does not meet the precision and recall thresholds
     thresholds = mlp_wrap.probability_thresholds
     precision_0, recall_0 = mlp_wrap.precisions[0], mlp_wrap.recalls[0]
+    # in this case, only label 0 meets precision & recall thresholds
     assert not thresholds[1] and not thresholds[2] and\
         precision_0 >= precision_threshold and recall_0 >= recall_threshold

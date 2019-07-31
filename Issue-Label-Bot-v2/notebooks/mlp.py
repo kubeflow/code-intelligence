@@ -55,11 +55,13 @@ class MLPWrapper:
         self.precision_threshold = precision_threshold
         self.recall_threshold = recall_threshold
 
-        self.exclusion_list = None
+        # precisions/probability_thresholds/recalls are dict
+        # {label_index: number or None}
         self.precisions = None
         self.probability_thresholds = None
         self.recalls = None
-        self.total_labels = None
+        # count of labels
+        self.total_labels_count = None
 
     def fit(self, X, y):
         """Train the classifier
@@ -92,8 +94,8 @@ class MLPWrapper:
         self.probability_thresholds = {}
         self.precisions = {}
         self.recalls = {}
-        self.total_labels = len(y_test[0])
-        for label in range(self.total_labels):
+        self.total_labels_count = len(y_test[0])
+        for label in range(self.total_labels_count):
             # find the probability for each label
             best_precision, best_recall, best_threshold = 0.0, 0.0, None
             precision, recall, threshold = precision_recall_curve(np.array(y_test)[:, label], y_pred[:, label])
@@ -105,7 +107,10 @@ class MLPWrapper:
                         best_precision = prec
                         best_recall = reca
                         best_threshold = thre
-            # if best_threshold is None, do not predict this label always
+            # self.probability_thresholds is a dict {label_index: probability_threshold}
+            # If probability_thresholds[label] is None, do not predict this label always, which
+            # means this label is in the excluded list because it does not satisfy
+            # both of the precision and recall thresholds
             self.probability_thresholds[label] = best_threshold
             self.precisions[label] = best_precision
             self.recalls[label] = best_recall
