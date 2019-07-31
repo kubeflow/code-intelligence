@@ -18,7 +18,7 @@ We build these tools with the help of Kubeflow, in order to dog-food tools that 
 
 1. [Label-Microservice](/Label-Microservice): A stand-alone service that receives as input an issue url: _example: `github.com/kubeflow/<repo>/issues/<issue_num>_` and returns repo-specific label predictions.  This leverages transfer learning via the [Issue-Embeddings](/Issue-Embeddings) API.  The goal of this project is to prototype this functionality by redirecting a subset of traffic from Issue-Label-Bot (starting with just Kubeflow/Kubeflow) for testing.
 
-2. [Notifications](/notifications): TODO
+2. Notifications: TODO
 
 # Developer Guide
 
