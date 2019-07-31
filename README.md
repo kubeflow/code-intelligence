@@ -10,13 +10,13 @@ We build these tools with the help of Kubeflow, in order to dog-food tools that 
 
 ### Deployed
 
-1. [Issue-Label-Bot-v1](https://github.com/marketplace/issue-label-bot): A GitHub App that automatically labels issues as either a feature request, bug or question, using machine learning. 
+1. [Issue-Label-Bot](https://github.com/marketplace/issue-label-bot): A GitHub App that automatically labels issues as either a feature request, bug or question, using machine learning.  The code for this is located in [this repository](https://github.com/machine-learning-apps/Issue-Label-Bot)
 
 2. [Issue-Embeddings](/Issue-Embeddings): A REST-API that returns 2400 dimensional embedding given an issue title and body.  This can be used for several downstream applications such as (1) label prediction, (2) duplicate detection (3) reviewer recommendation, etc.  You can also retrieve the embeddings for all issues in a repo in bulk at once.
 
 ### Under Construction :construction:
 
-1. [Issue-Label-Bot-v2](/Issue-Label-Bot-v2): An improvement upon the [previous version](https://github.com/marketplace/issue-label-bot) of Issue-Label-Bot that predicts personalized issue labels, using the [Issue-Embeddings](/Issue-Embeddings) API.
+1. [Label-Microservice](/Label-Microservice): A stand-alone service that receives as input an issue url: _example: `github.com/kubeflow/<repo>/issues/<issue_num>_` and returns repo-specific label predictions.  This leverages transfer learning via the [Issue-Embeddings](/Issue-Embeddings) API.  The goal of this project is to prototype this functionality by redirecting a subset of traffic from Issue-Label-Bot (starting with just Kubeflow/Kubeflow) for testing.
 
 2. [Notifications](/notifications): TODO
 
