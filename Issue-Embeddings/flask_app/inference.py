@@ -10,6 +10,8 @@ import pandas as pd
 from tqdm.auto import tqdm
 import numpy as np
 from typing import List
+from math import ceil
+from more_itertools import chunked
 
 def pass_through(x):
     return x
@@ -114,7 +116,8 @@ class InferenceWrapper:
         df = pd.DataFrame(lst)
         return df
 
-    def df_to_emb(self, dataframe:pd.DataFrame, bs=150) -> np.ndarray:
+
+    def df_to_emb(self, dataframe:pd.DataFrame, bs=100) -> np.ndarray:
         """
         Retrieve document embeddings for a dataframe with the columns `title` and `body`.
         Uses batching for effiecient computation, which is useful when you have many documents
@@ -149,30 +152,58 @@ class InferenceWrapper:
         """
         new_df = self.process_df(dataframe)
         text_list = new_df['text'].to_list()
-        
-        numercalized_docs = []
-        lengths = []
+        # to get the benefit of batching similar length sequences together, have a minimum of 20 batches
+        bs = min(bs, (len(text_list) // 20) + 1)
 
+        numericalized_docs = []
+        lengths = []
         for text in tqdm(text_list, desc="Numericalizing text:"):
             features = self.numericalize(text)[0, :]
-            numercalized_docs.append(features)
+            numericalized_docs.append(features)
             lengths.append(features.shape[0])
 
-        padded_features = pad_sequence(numercalized_docs, batch_first=True, padding_value=self.pad_idx)
-        # chunk the numericalized tensor into batches for faster inference
-        batched_features = split(padded_features, split_size_or_sections=bs)
+        # sort the data by sequence length and assemble batches
+        length_arr = np.array(lengths)
+        len_mask = length_arr.argsort()
+        len_mask_reversed = len_mask.argsort()
+        batched_features = list(chunked([numericalized_docs[i] for i in len_mask], bs))
+        batched_lengths = list(chunked(length_arr[len_mask], bs))
 
-        # perform inference on each batch
+        # perform model inference
         hidden_states_batched = []
-        for b in tqdm(batched_features, desc="Model inference:"):
-            hidden_states_batched.append(self._forward_pass(b))
+        pooled_states = []
+        for i, b in tqdm(enumerate(batched_features), desc="Model inference:"):
+            # pad the batch to the same length
+            bp = pad_sequence(b, batch_first=True, padding_value=self.pad_idx)
+            # perform inference
+            hidden_states = self._forward_pass(bp)
             empty_cache()
+            # fetch the summary of the hidden states as the embedding
+            pooled_states.append(self.batch_seq_pool(hidden_states, batched_lengths[i]))
 
-        hidden_states = cat(hidden_states_batched)
-        pooled_hidden_states = self.batch_seq_pool(hidden_states, lengths)
+        # restore the original order of the data by unsorting
+        pooled_states = cat(pooled_states)[len_mask_reversed, :]
+        assert pooled_states.shape[0] == length_arr.shape[0], len(dataframe)
+        
+        return pooled_states
+            
 
-        assert pooled_hidden_states.shape[0] == len(lengths) == len(dataframe)
-        return  pooled_hidden_states
+        # ##########
+        # padded_features = pad_sequence(numericalized_docs, batch_first=True, padding_value=self.pad_idx)
+        # # chunk the numericalized tensor into batches for faster inference
+        # batched_features = split(padded_features, split_size_or_sections=bs)
+
+        # # perform inference on each batch
+        # hidden_states_batched = []
+        # for b in tqdm(batched_features, desc="Model inference:"):
+        #     hidden_states_batched.append(self._forward_pass(b))
+        #     empty_cache()
+
+        # hidden_states = cat(hidden_states_batched)
+        # pooled_hidden_states = self.batch_seq_pool(hidden_states, lengths)
+
+        # assert pooled_hidden_states.shape[0] == len(lengths) == len(dataframe)
+        # return  pooled_hidden_states
 
 
     @classmethod
