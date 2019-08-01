@@ -186,24 +186,6 @@ class InferenceWrapper:
         assert pooled_states.shape[0] == length_arr.shape[0], len(dataframe)
         
         return pooled_states
-            
-
-        # ##########
-        # padded_features = pad_sequence(numericalized_docs, batch_first=True, padding_value=self.pad_idx)
-        # # chunk the numericalized tensor into batches for faster inference
-        # batched_features = split(padded_features, split_size_or_sections=bs)
-
-        # # perform inference on each batch
-        # hidden_states_batched = []
-        # for b in tqdm(batched_features, desc="Model inference:"):
-        #     hidden_states_batched.append(self._forward_pass(b))
-        #     empty_cache()
-
-        # hidden_states = cat(hidden_states_batched)
-        # pooled_hidden_states = self.batch_seq_pool(hidden_states, lengths)
-
-        # assert pooled_hidden_states.shape[0] == len(lengths) == len(dataframe)
-        # return  pooled_hidden_states
 
 
     @classmethod
