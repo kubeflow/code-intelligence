@@ -41,10 +41,13 @@ def get_issue_text(num, idx, owner, repo, skip_issue=True):
         {'title':str, 'body':str}
     """
     url = f'https://github.com/{owner}/{repo}/issues/{num}'
-    if requests.head(url).status_code != 200:
+    status_code = requests.head(url).status_code
+    if status_code != 200:
         if skip_issue:
             return None
-        raise Exception(f'Status code is not 200:\n{url} is not an issue.')
+        raise Exception(f'Status code is {status_code} not 200:\n'
+                        '{url} is not an issue.\n'
+                        'Note: status code is 302 if it is a pull request')
 
     soup = BeautifulSoup(requests.get(url).content, 'html.parser')
     title_find = soup.find("span", class_="js-issue-title")
@@ -134,4 +137,5 @@ def load_model_artifact(model_url):
 
 
 if __name__ == '__main__':
-    test = get_all_issue_text(owner='kubeflow', repo='examples', inf_wrapper=load_model_artifact())
+    test = get_all_issue_text(owner='kubeflow', repo='examples',
+        inf_wrapper=load_model_artifact('https://storage.googleapis.com/issue_label_bot/model/lang_model/models_22zkdqlr/trained_model_22zkdqlr.pkl'))
