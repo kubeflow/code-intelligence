@@ -1,8 +1,7 @@
 import pytest
 # TODO: Use absolute import instead of relative import.
 #       Should make a decision on what are top level python packages.
-import sys
-sys.path.insert(1, '../notebooks')
+#       One solution for not is to use $PYTHONPATH
 
 from mlp import MLPWrapper
 import numpy as np
