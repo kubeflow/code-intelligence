@@ -1,15 +1,22 @@
+from typing import List
+from math import ceil
+from more_itertools import chunked
+import uuid
+from pathlib import Path
 from mdparse.parser import transform_pre_rules, compose
 from torch.nn.utils.rnn import pad_sequence
 from fastai.text.transform import defaults
 from fastai.core import PathOrStr, parallel
 from fastai.basic_train import load_learner
-from torch import Tensor, split, cat as torch_cat
+from fastai.text import TextLMDataBunch as lmdb
+from fastai.text.data import TokenizeProcessor
+from torch import Tensor, tensor, split, cat as torch_cat
 from numpy import concatenate as cat, stack
 from torch.cuda import empty_cache
 import pandas as pd
 from tqdm.auto import tqdm
 import numpy as np
-from typing import List
+
 
 def pass_through(x):
     return x
@@ -24,15 +31,23 @@ class InferenceWrapper:
         self.learn.model.eval()  # turn off dropout, etc. only need to do this after loading model.
         self.encoder = self.learn.model[0]
         self.pad_idx = self.learn.data.pad_idx
+        self.model_tokenizer = [x.tokenizer for x in self.learn.data.processor if type(x) == TokenizeProcessor][0]
+        self.path = Path(f'./inference_utils/{str(uuid.uuid4())}')
+        self.vocab = self.learn.data.vocab
     
     @staticmethod
     def parse(x: str) -> str:
+        """
+        Pre-process the text (markdown annotation and cleanup) prior to tokenizing.
+        
+        This method is meant to be applied to the GitHub issue title and body seperately.
+        """
         return compose(transform_pre_rules+defaults.text_pre_rules)(x)
     
     
-    def numericalize(self, x:str) -> Tensor:
+    def numericalize_one(self, x:str) -> Tensor:
         """Convert text to a series of integers in preparation for inference."""
-        return self.learn.data.one_item(self.parse(x))[0]
+        return self.learn.data.one_item(x)[0]
 
     def _forward_pass(self, x:Tensor) -> Tensor:
         self.encoder.reset()
@@ -44,7 +59,7 @@ class InferenceWrapper:
         
         Returns Tensor of the shape (1, sequence_length, ndim)
         """
-        seq_ints = self.numericalize(x)
+        seq_ints = self.numericalize_one(x)
         self.encoder.reset() # so the hidden states reset between predictions
         
         return self.encoder.forward(seq_ints)[-1][-1]
@@ -114,7 +129,8 @@ class InferenceWrapper:
         df = pd.DataFrame(lst)
         return df
 
-    def df_to_emb(self, dataframe:pd.DataFrame, bs=150) -> np.ndarray:
+
+    def df_to_emb(self, dataframe:pd.DataFrame, bs=100) -> np.ndarray:
         """
         Retrieve document embeddings for a dataframe with the columns `title` and `body`.
         Uses batching for effiecient computation, which is useful when you have many documents
@@ -148,31 +164,49 @@ class InferenceWrapper:
         (200, 2400)
         """
         new_df = self.process_df(dataframe)
-        text_list = new_df['text'].to_list()
-        
-        numercalized_docs = []
+        # to get the benefit of batching similar length sequences together, have a minimum of 20 batches
+        bs = min(bs, (len(new_df) // 20) + 1)
+
+        # use the machinery of the data block to numericalize text in parallel
+        data_lm = lmdb.from_df(path=self.path,
+                               train_df=new_df.head(), # train_df gets sample data only
+                               valid_df=new_df,
+                               text_cols='text',
+                               tokenizer=self.model_tokenizer,
+                               vocab=self.vocab)
+
+        # extract numericalized arrays and convert to pytorch
+        docs = data_lm.valid_dl.x.items
         lengths = []
+        numericalized_docs = []
+        for arr in docs:
+            numericalized_docs.append(tensor(arr).cuda()) # convert to torch.Tensor
+            lengths.append(arr.shape[0])
 
-        for text in tqdm(text_list, desc="Numericalizing text:"):
-            features = self.numericalize(text)[0, :]
-            numercalized_docs.append(features)
-            lengths.append(features.shape[0])
+        # sort the data by sequence length and assemble batches
+        length_arr = np.array(lengths)
+        len_mask = length_arr.argsort()
+        len_mask_reversed = len_mask.argsort()
+        batched_features = list(chunked([numericalized_docs[i] for i in len_mask], bs))
+        batched_lengths = list(chunked(length_arr[len_mask], bs))
 
-        padded_features = pad_sequence(numercalized_docs, batch_first=True, padding_value=self.pad_idx)
-        # chunk the numericalized tensor into batches for faster inference
-        batched_features = split(padded_features, split_size_or_sections=bs)
-
-        # perform inference on each batch
+        # perform model inference
         hidden_states_batched = []
-        for b in tqdm(batched_features, desc="Model inference:"):
-            hidden_states_batched.append(self._forward_pass(b))
+        pooled_states = []
+        for i, b in tqdm(enumerate(batched_features), desc="Model inference:"):
+            # pad the batch to the same length
+            bp = pad_sequence(b, batch_first=True, padding_value=self.pad_idx)
+            # perform inference
+            hidden_states = self._forward_pass(bp)
             empty_cache()
+            # fetch the summary of the hidden states as the embedding
+            pooled_states.append(self.batch_seq_pool(hidden_states, batched_lengths[i]))
 
-        hidden_states = cat(hidden_states_batched)
-        pooled_hidden_states = self.batch_seq_pool(hidden_states, lengths)
-
-        assert pooled_hidden_states.shape[0] == len(lengths) == len(dataframe)
-        return  pooled_hidden_states
+        # restore the original order of the data by unsorting
+        pooled_states = cat(pooled_states)[len_mask_reversed, :]
+        assert pooled_states.shape[0] == length_arr.shape[0] == len(dataframe)
+        
+        return pooled_states
 
 
     @classmethod
