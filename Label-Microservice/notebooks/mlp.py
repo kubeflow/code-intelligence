@@ -11,26 +11,13 @@ import logging
 class MLPWrapper:
     """Wrapper for Multi-Layer Perceptron classifier"""
     def __init__(self,
-                 activation='relu',
-                 alpha=0.0001,
-                 clf=None,
-                 early_stopping=True,
-                 epsilon=1e-08,
-                 hidden_layer_sizes=(100,),
-                 learning_rate='constant',
-                 learning_rate_init=0.001,
-                 max_iter=500,
+                 clf,
                  model_file="model.dpkl",
-                 momentum=0.9,
-                 n_iter_no_change=5,
                  precision_threshold=0.7,
-                 random_state=1234,
-                 recall_threshold=0.5,
-                 solver='adam',
-                 validation_fraction=0.1):
+                 recall_threshold=0.5):
         """Initialize parameters of the MLP classifier
         Args:
-          clf: MLPClassifier object for testing
+          clf: a sklearn.neural_network.MLPClassifier object
           model_file: the local path to save or load model
           precision_threshold: the threshold that the precision of one label must meet in order to be predicted
           recall_threshold: the threshold that the recall of one label must meet in order to be predicted
@@ -38,19 +25,7 @@ class MLPWrapper:
         if clf:
             self.clf = clf
         else:
-            self.clf = MLPClassifier(activation=activation,
-                                     alpha=alpha,
-                                     early_stopping=early_stopping,
-                                     epsilon=epsilon,
-                                     hidden_layer_sizes=hidden_layer_sizes,
-                                     learning_rate=learning_rate,
-                                     learning_rate_init=learning_rate_init,
-                                     max_iter=max_iter,
-                                     momentum=momentum,
-                                     n_iter_no_change=n_iter_no_change,
-                                     random_state=random_state,
-                                     solver=solver,
-                                     validation_fraction=validation_fraction)
+            raise Exception("You need to pass a MLPClassifier object to the wrapper")
         self.model_file = model_file
         self.precision_threshold = precision_threshold
         self.recall_threshold = recall_threshold
