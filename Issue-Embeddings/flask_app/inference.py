@@ -72,13 +72,13 @@ class InferenceWrapper:
     @classmethod
     def process_dict(cls, dfdict:dict) -> dict:
         """
-        The purpose of this transform a dictionary containing these keys: 
+        Transform the text in a dictionary containing these keys: 
         - title: the title of the GitHub issue
         - body: the body, not including any comments
 
-        This method will combined these two fields into one string wtih markup deleniating 
-        the title and body fields, as well as identifying other artifacts that might
-        occur in markdown (see examples below.)
+        This method will combine these two fields into one string wtih markup deleniating 
+        the title and body fields, as well as identify other artifacts that might occur
+        in markdown (see https://github.com/machine-learning-apps/mdparse for references.)
 
         Parameters
         ---------
