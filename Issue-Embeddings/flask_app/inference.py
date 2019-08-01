@@ -3,7 +3,9 @@ from torch.nn.utils.rnn import pad_sequence
 from fastai.text.transform import defaults
 from fastai.core import PathOrStr, parallel
 from fastai.basic_train import load_learner
-from torch import Tensor, cat, stack, split
+from torch import Tensor, split, cat as torch_cat
+from numpy import concatenate as cat, stack
+from torch.cuda import empty_cache
 import pandas as pd
 from tqdm.auto import tqdm
 import numpy as np
@@ -34,7 +36,7 @@ class InferenceWrapper:
 
     def _forward_pass(self, x:Tensor) -> Tensor:
         self.encoder.reset()
-        return self.encoder.forward(x)[-1][-1].detach()
+        return self.encoder.forward(x)[-1][-1].detach().cpu().numpy()
     
     def get_raw_features(self, x:str) -> Tensor:
         """
@@ -67,7 +69,7 @@ class InferenceWrapper:
         """
         raw = self.get_raw_features(x)
         # return [mean, max, last] with size of (1, self.learn.emb_sz * 3)
-        return cat([raw.mean(dim=1), raw.max(dim=1)[0], raw[:,-1,:]], dim=-1)
+        return torch_cat([raw.mean(dim=1), raw.max(dim=1)[0], raw[:,-1,:]], dim=-1)
     
     @classmethod
     def process_dict(cls, dfdict:dict) -> dict:
@@ -106,13 +108,13 @@ class InferenceWrapper:
     def process_df(cls, dataframe:pd.DataFrame) -> pd.DataFrame:
         """Loop through a pandas DataFrame and create a single text field."""
         lst = []
-        for d in tqdm(dataframe.to_dict(orient='rows'), desc="Tokenizing and parsing text."):
+        for d in tqdm(dataframe.to_dict(orient='rows'), desc="Tokenizing and parsing text:"):
             lst.append(cls.process_dict(d))
         
         df = pd.DataFrame(lst)
         return df
 
-    def df_to_emb(self, dataframe:pd.DataFrame, bs=75) -> np.ndarray:
+    def df_to_emb(self, dataframe:pd.DataFrame, bs=150) -> np.ndarray:
         """
         Retrieve document embeddings for a dataframe with the columns `title` and `body`.
         Uses batching for effiecient computation, which is useful when you have many documents
@@ -122,7 +124,10 @@ class InferenceWrapper:
         ----------
         dataframe: pandas.DataFrame
             Dataframe with columns `title` and `body`, which reprsent the Title and Body of a
-            GitHub Issue.  
+            GitHub Issue. 
+        bs: int
+            batch size for doing inference.  Set this variable according to your available GPU memory.
+            The default is set to 200, which was stable on a Nvida-Tesla V-100.
 
         Returns
         -------
@@ -148,7 +153,7 @@ class InferenceWrapper:
         numercalized_docs = []
         lengths = []
 
-        for text in tqdm(text_list, desc="Numericalizing text."):
+        for text in tqdm(text_list, desc="Numericalizing text:"):
             features = self.numericalize(text)[0, :]
             numercalized_docs.append(features)
             lengths.append(features.shape[0])
@@ -158,8 +163,13 @@ class InferenceWrapper:
         batched_features = split(padded_features, split_size_or_sections=bs)
 
         # perform inference on each batch
-        hidden_states = cat([self._forward_pass(b) for b in batched_features])
-        pooled_hidden_states = self.batch_seq_pool(hidden_states, lengths).cpu().numpy()
+        hidden_states_batched = []
+        for b in tqdm(batched_features, desc="Model inference:"):
+            hidden_states_batched.append(self._forward_pass(b))
+            empty_cache()
+
+        hidden_states = cat(hidden_states_batched)
+        pooled_hidden_states = self.batch_seq_pool(hidden_states, lengths)
 
         assert pooled_hidden_states.shape[0] == len(lengths) == len(dataframe)
         return  pooled_hidden_states
@@ -189,7 +199,7 @@ class InferenceWrapper:
         embs = [seq_emb[i, :x, :] for i, x in enumerate(lengths)]
         
         # calculate the pooled features ignoring the padding
-        features = [cat([emb.mean(dim=0), emb.max(dim=0)[0], emb[-1,:]], dim=-1) for emb in embs]
+        features = [cat([emb.mean(axis=0), emb.max(axis=0), emb[-1,:]], axis=-1) for emb in embs]
         combined_features = stack(features)
         
         # check that the dimensionality of the document embedding is 3x the dimensionality of the 
