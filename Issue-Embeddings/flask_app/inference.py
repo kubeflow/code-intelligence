@@ -174,7 +174,7 @@ class InferenceWrapper:
         ----------
         seq_emb: Tensor
             Tensor of shape (bs, sequence length, dimension)
-            This tensor are the final layer of the encoder of a language model.
+            This tensor reprsents the hidden states of final layer of the encoder from a language model.
         lengths: List
             list of integers indicating the sequence lengths
         
