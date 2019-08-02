@@ -183,7 +183,6 @@ class InferenceWrapper:
         length_arr = np.array(lengths)
         len_mask = length_arr.argsort()
         len_mask_reversed = len_mask.argsort()
-        #batched_features = list(chunked(numericalized_docs[len_mask], bs))
         batched_features = list(chunked([numericalized_docs[i] for i in len_mask], bs))
         batched_lengths = list(chunked(length_arr[len_mask], bs))
 
