@@ -200,7 +200,7 @@ class InferenceWrapper:
 
         # restore the original order of the data by unsorting
         pooled_states = cat(pooled_states)[len_mask_reversed, :]
-        assert pooled_states.shape[0] == length_arr.shape[0], len(dataframe)
+        assert pooled_states.shape[0] == length_arr.shape[0] == len(dataframe)
         
         return pooled_states
 
