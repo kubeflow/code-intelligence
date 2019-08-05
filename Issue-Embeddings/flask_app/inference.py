@@ -31,7 +31,7 @@ class InferenceWrapper:
         self.learn.model.eval()  # turn off dropout, etc. only need to do this after loading model.
         self.encoder = self.learn.model[0]
         self.pad_idx = self.learn.data.pad_idx
-        self.mtokenizer = [x.tokenizer for x in self.learn.data.processor if type(x) == TokenizeProcessor][0]
+        self.model_tokenizer = [x.tokenizer for x in self.learn.data.processor if type(x) == TokenizeProcessor][0]
         self.path = Path(f'./inference_utils/{str(uuid.uuid4())}')
         self.vocab = self.learn.data.vocab
     
@@ -159,7 +159,6 @@ class InferenceWrapper:
         (200, 2400)
         """
         new_df = self.process_df(dataframe)
-        #text_list = new_df['text'].to_list()
         # to get the benefit of batching similar length sequences together, have a minimum of 20 batches
         bs = min(bs, (len(new_df) // 20) + 1)
 
@@ -168,7 +167,7 @@ class InferenceWrapper:
                                train_df=new_df.head(), # train_df gets sample data only
                                valid_df=new_df,
                                text_cols='text',
-                               tokenizer=self.mtokenizer,
+                               tokenizer=self.model_tokenizer,
                                vocab=self.vocab)
 
         # extract numericalized arrays and convert to pytorch
