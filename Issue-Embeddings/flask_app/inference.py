@@ -37,6 +37,11 @@ class InferenceWrapper:
     
     @staticmethod
     def parse(x: str) -> str:
+        """
+        Pre-process the text (markdown annotation and cleanup) prior to tokenizing.
+        
+        This method is meant to be applied to the GitHub issue title and body seperately.
+        """
         return compose(transform_pre_rules+defaults.text_pre_rules)(x)
     
     
