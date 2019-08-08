@@ -39,9 +39,12 @@ google-auth==1.6.3
 google-auth-httplib2==0.0.3
 google-cloud-bigquery==1.17.0
 google-cloud-core==1.0.3
+google-cloud-pubsub==0.45.0
 google-cloud-storage==1.17.0
 google-resumable-media==0.3.2
 googleapis-common-protos==1.6.0
+grpc-google-iam-v1==0.12.3
+grpcio==1.22.0
 html5lib==1.0.1
 httplib2==0.13.1
 idna==2.8
