@@ -324,3 +324,11 @@ class Worker:
 
         # make a comment using the GitHub api
         comment = issue.create_comment(message)
+
+
+if __name__ == '__main__':
+    logging.basicConfig(format='%(message)s')
+    logging.getLogger().setLevel(logging.INFO)
+
+    w = Worker()
+    w.subscribe()
