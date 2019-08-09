@@ -81,17 +81,22 @@ class Worker:
 
         def callback(message):
             """
-            Object:
-            message =
-                Message {
-                    data: b'New issue.',
-                    attributes: {
-                        'installation_id': '10000',
-                        'repo_owner': 'kubeflow',
-                        'repo_name': 'examples',
-                        'issue_num': '1'
-                    }
-                }
+            Address events in pubsub by sequential procedures.
+            Load the model mapped to the events.
+            Do label prediction.
+            Add labels if the confidence is enough.
+            Args:
+              Object:
+              message =
+                  Message {
+                      data: b'New issue.',
+                      attributes: {
+                          'installation_id': '10000',
+                          'repo_owner': 'kubeflow',
+                          'repo_name': 'examples',
+                          'issue_num': '1'
+                      }
+                  }
             """
             installation_id = message.attributes['installation_id']
             repo_owner = message.attributes['repo_owner']
