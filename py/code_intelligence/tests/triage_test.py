@@ -1,4 +1,4 @@
-from code_intelligence import triage
+from code_intelligence.triage import triage
 from dateutil import parser as dateutil_parser
 import json
 import logging
