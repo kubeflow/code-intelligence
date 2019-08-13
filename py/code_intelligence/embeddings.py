@@ -5,7 +5,7 @@ from collections import Counter
 from tqdm import tqdm
 import torch
 import pandas as pd
-from inference import InferenceWrapper
+from code_intelligence.inference import InferenceWrapper
 from pathlib import Path
 from urllib import request as request_url
 import logging
