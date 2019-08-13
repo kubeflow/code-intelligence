@@ -31,7 +31,7 @@ def find_max_issue_num(owner, repo):
     issue_num = issue_meta.strip().split('\n')[0][1:]
     return int(issue_num)
 
-def get_issue_text(num, idx, owner, repo, skip_issue=True):
+def get_issue_text(num, idx, owner, repo, skip_issue=True, check_label=True):
     """
     Get the raw text of an issue body and label.
 
@@ -61,7 +61,7 @@ def get_issue_text(num, idx, owner, repo, skip_issue=True):
     body = body_find.get_text().strip()
     labels = label_find.get_text().strip().split('\n')
 
-    if labels[0] == 'None yet':
+    if check_label and labels[0] == 'None yet':
         return None
 
     return {'title':title,
