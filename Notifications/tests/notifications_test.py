@@ -1,6 +1,6 @@
 import json
 import logging
-import notifications
+from notifications import notifications
 import pytest
 
 def test_process_issue_results():
