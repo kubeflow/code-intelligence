@@ -1,9 +1,5 @@
 import pytest
-# TODO: Use absolute import instead of relative import.
-#       Should make a decision on what are top level python packages.
-#       One solution for not is to use $PYTHONPATH
-
-from mlp import MLPWrapper
+from label_microservice.mlp import MLPWrapper
 import numpy as np
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
