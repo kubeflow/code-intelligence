@@ -69,7 +69,9 @@ class TriageInfo(object):
         break
 
     # TODO(jlewi): Could we potentially miss some events since we aren't
-    # paginating through all events for an issue?
+    # paginating through all events for an issue? This should no longer
+    # be an issue because _process_issue will call _get_issue and paginate
+    # through all results.
     for e in events:
 
       if not "createdAt" in e:
@@ -418,6 +420,116 @@ class IssueTriage(object):
       data:
     """
 
+  def update_kanban_board(self):
+    """Checks if any issues in the needs triage board can be removed.
+    """
+    query = """query getIssues($issueCursor: String) {
+  search(type: ISSUE, query: "is:open is:issue org:kubeflow project:kubeflow/26", first: 100, after: $issueCursor) {
+    issueCount
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+    edges {
+      node {
+        __typename
+        ... on Issue {
+          author {
+            __typename
+            ... on User {
+              login
+            }
+            ... on Bot {
+              login
+            }
+          }
+          id
+          title
+          body
+          url
+          state
+          createdAt
+          closedAt
+          labels(first: 30) {
+            totalCount
+            edges {
+              node {
+                name
+              }
+            }
+          }
+          projectCards(first: 30) {
+            totalCount
+            pageInfo {
+              endCursor
+              hasNextPage
+            }
+            edges {
+              node {
+                id
+                project {
+                  name
+                  number
+                }
+              }
+            }
+          }
+          timelineItems(first: 30) {
+            totalCount
+            pageInfo {
+              endCursor
+              hasNextPage
+            }
+            edges {
+              node {
+                __typename
+                ... on AddedToProjectEvent {
+                  createdAt
+                }
+                ... on LabeledEvent {
+                  createdAt
+                  label {
+                    name
+                  }
+                }
+                ... on ClosedEvent {
+                  createdAt
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+    issues_cursor = None
+    has_next_issues_page = True
+    while has_next_issues_page:
+
+      variables = {
+        "issueCursor": issues_cursor,
+      }
+      results = self.client.run_query(query, variables=variables)
+
+      if results.get("errors"):
+        message = json.dumps(results.get("errors"))
+        logging.error("There was a problem issuing the query; errors:\n%s",
+                      "\n", message)
+        return
+
+      issues = graphql.unpack_and_split_nodes(
+        results, ["data", "search", "edges"])
+
+      for i in issues:
+        self._process_issue(i)
+
+      page_info = results["data"]["search"]["pageInfo"]
+      issues_cursor = page_info["endCursor"]
+      has_next_issues_page = page_info["hasNextPage"]
+
+
   def triage(self, repo, output=None, **kwargs):
     """Triage issues in the specified repository.
 
@@ -434,21 +546,14 @@ class IssueTriage(object):
       for i in shard:
         self._process_issue(i)
 
-  def triage_issue(self, url, project=None, add_comment=False):
-    """Triage a single issue.
+  def _get_issue(self, url):
+    """Gets the complete issue.
 
-    Args:
-      url: The url of the issue e.g.
-        https://github.com/kubeflow/community/issues/280
-
-      project: (Optional) If supplied the URL of the project to add issues
-        needing triage to.
-
-      add_comment: Set to true to comment on the issue with why
-        the issue needs triage
+    This function does pagination to fetch all timeline items.
     """
 
-    query = """query getIssue($url: URI!) {
+    # TODO(jlewi): We should impelement pagination for labels as well
+    query = """query getIssue($url: URI!, $timelineCursor: String) {
   resource(url: $url) {
     __typename
     ... on Issue {
@@ -486,12 +591,38 @@ class IssueTriage(object):
           }
         }
       }
+      timelineItems(first: 30, after: $timelineCursor) {
+            totalCount
+            pageInfo {
+              endCursor
+              hasNextPage
+            }
+            edges {
+              node {
+                __typename
+                ... on AddedToProjectEvent {
+                  createdAt
+
+                }
+                ... on LabeledEvent {
+                  createdAt
+                  label {
+                    name
+                  }
+                }
+                ... on ClosedEvent {
+                  createdAt
+                }
+              }
+           }
+      }
     }
   }
 }"""
 
     variables = {
-      "url": url
+      "url": url,
+      "timelineCursor": None,
     }
     results = self.client.run_query(query, variables=variables)
 
@@ -502,7 +633,38 @@ class IssueTriage(object):
       return
 
     issue = results["data"]["resource"]
-    self._process_issue(issue)
+
+    has_next_page = issue["timelineItems"]["pageInfo"]["hasNextPage"]
+
+    while has_next_page:
+      variables["timelineCursor"] = issue["timelineItems"]["pageInfo"]["endCursor"]
+      results = self.client.run_query(query, variables=variables)
+
+      edges  = (issue["timelineItems"]["edges"] +
+                results["data"]["resource"]["timelineItems"]["edges"])
+      issue["timelineItems"]["edges"] = edges
+      issue["timelineItems"]["pageInfo"] = (
+        results["data"]["resource"]["timelineItems"]["pageInfo"])
+      has_next_page = (results["data"]["resource"]["timelineItems"]["pageInfo"]
+                       ["hasNextPage"])
+
+    return issue
+
+  def triage_issue(self, url, project=None, add_comment=False):
+    """Triage a single issue.
+
+    Args:
+      url: The url of the issue e.g.
+        https://github.com/kubeflow/community/issues/280
+
+      project: (Optional) If supplied the URL of the project to add issues
+        needing triage to.
+
+      add_comment: Set to true to comment on the issue with why
+        the issue needs triage
+    """
+    issue = self._get_issue(url)
+    return self._process_issue(issue)
 
   def _process_issue(self, issue, add_comment=False):
     """Process a single issue.
@@ -510,6 +672,13 @@ class IssueTriage(object):
     Args:
       issue: Issue to process.
     """
+
+    if issue["timelineItems"]["pageInfo"]["hasNextPage"]:
+      # Since not all timelineItems were fetched; we need to refetch
+      # the issue and this time paginate to get all items.
+      logging.info("Issue: %s; fetching all timeline items", issue["url"])
+      issue = self._get_issue(issue["url"])
+
     info = TriageInfo.from_issue(issue)
     logging.info("Issue %s:\nstate:%s\n", info.issue["url"], info.message())
 
@@ -545,6 +714,7 @@ class IssueTriage(object):
 
     # add project
     self._add_triage_project(info)
+    return info
 
   def _remove_triage_project(self, issue_info):
     """Remove the issue from the triage project.
