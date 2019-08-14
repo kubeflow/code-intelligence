@@ -199,7 +199,6 @@ class Worker:
         issue_text = get_issue_text(owner=repo_owner,
                                     repo=repo_name,
                                     num=issue_num,
-                                    check_label=False,
                                     idx=None)
         data = {'title': issue_text['title'],
                 'body': issue_text['body']}
