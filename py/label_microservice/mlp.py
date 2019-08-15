@@ -51,7 +51,7 @@ class MLPWrapper:
         """
         self.clf.fit(X, y)
 
-    def predict_proba(self, X):
+    def predict_probabilities(self, X):
         """Predict probabilities of all labels for data
         Args:
           X: features, numpy.array
@@ -69,7 +69,7 @@ class MLPWrapper:
         # split data
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=1234)
         self.fit(X_train, y_train)
-        y_pred = self.predict_proba(X_test)
+        y_pred = self.predict_probabilities(X_test)
 
         self.probability_thresholds = {}
         self.precisions = {}

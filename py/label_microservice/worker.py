@@ -236,6 +236,36 @@ class Worker:
             label_columns = yaml.safe_load(f)
         return label_columns
 
+    def predict_issue_probability(self, repo_owner, repo_name, issue_num):
+        """
+        Predict probabilities of labels for an issue.
+        Args:
+          repo_owner: repo owner
+          repo_name: repo name
+          issue_num: issue index
+
+        Return
+        ------
+        numpy.ndarray
+            shape: (label_count,)
+        numpy.ndarray
+            shape: (1600,)
+        """
+        issue_embedding = self.get_issue_embedding(repo_owner=repo_owner,
+                                                   repo_name=repo_name,
+                                                   issue_num=issue_num)
+
+        # if not retrieve the embedding, ignore to predict it
+        if issue_embedding is None:
+            return [], None
+
+        mlp_wrapper = MLPWrapper(clf=None,
+                                 model_file=self.config.model_local_path,
+                                 load_from_model=True)
+        # change embedding from 1d to 2d for prediction and extract the result
+        label_probabilities = mlp_wrapper.predict_probabilities([issue_embedding])[0]
+        return label_probabilities, issue_embedding
+
     def predict_labels(self, repo_owner, repo_name, issue_num):
         """
         Predict labels for given issue.
@@ -252,19 +282,8 @@ class Worker:
             shape: (1600,)
         """
         logging.info(f'Predicting labels for the issue #{issue_num} from {repo_owner}/{repo_name}')
-        issue_embedding = self.get_issue_embedding(repo_owner=repo_owner,
-                                                   repo_name=repo_name,
-                                                   issue_num=issue_num)
-
-        # if not retrieve the embedding, ignore to predict it
-        if issue_embedding is None:
-            return {'labels': [], 'probabilities': []}, None
-
-        mlp_wrapper = MLPWrapper(clf=None,
-                                 model_file=self.config.model_local_path,
-                                 load_from_model=True)
-        # change embedding from 1d to 2d for prediction and extract the result
-        label_probabilities = mlp_wrapper.predict_proba([issue_embedding])[0]
+        # get probabilities of labels for an issue
+        label_probabilities, issue_embedding = self.predict_issue_probability(repo_owner, repo_name, issue_num)
 
         # get label info from local file
         label_columns = self.load_label_columns()
@@ -281,6 +300,35 @@ class Worker:
                 predictions['probabilities'].append(label_probabilities[i])
         return predictions, issue_embedding
 
+    def filter_specified_labels(self, repo_owner, repo_name, predictions):
+        """
+        Only select those labels which are specified by yaml file to be predicted.
+        If there is no setting in the yaml file, return all predicted items.
+        Args:
+          repo_owner: repo owner, str
+          repo_name: repo name, str
+          prediction: predicted result from `predict_labels()` function
+                      dict {'labels': list, 'probabilities': list}
+        """
+        label_names = []
+        label_probabilities = []
+        # handle the yaml file
+        yaml = get_yaml(owner=repo_owner, repo=repo_name)
+        # user may set the labels they want to predict
+        if yaml and 'predicted-labels' in yaml:
+            for name, proba in zip(predictions['labels'], predictions['probabilities']):
+                if name in yaml['predicted-labels']:
+                    label_names.append(name)
+                    label_probabilities.append(proba)
+        else:
+            logging.warning(f'YAML file does not contain `predicted-labels`, '
+                             'bot will predict all labels with enough confidence')
+            # if user do not set `predicted-labels`,
+            # predict all labels with enough confidence
+            label_names = predictions['labels']
+            label_probabilities = predictions['probabilities']
+        return label_names, label_probabilities
+
     def add_labels_to_issue(self, installation_id, repo_owner, repo_name,
                             issue_num, predictions):
         """
@@ -294,24 +342,10 @@ class Worker:
                       dict {'labels': list, 'probabilities': list}
         """
         # take an action if the prediction is confident enough
-        label_names = []
-        label_probabilities = []
         if predictions['labels']:
-            # handle the yaml file
-            yaml = get_yaml(owner=repo_owner, repo=repo_name)
-            # user may set the labels they want to predict
-            if yaml and 'predicted-labels' in yaml:
-                for name, proba in zip(predictions['labels'], predictions['probabilities']):
-                    if name in yaml['predicted-labels']:
-                        label_names.append(name)
-                        label_probabilities.append(proba)
-            else:
-                logging.warning(f'YAML file does not contain `predicted-labels`, '
-                                 'bot will predict all labels with enough confidence')
-                # if user do not set `predicted-labels`,
-                # predict all labels with enough confidence
-                label_names = predictions['labels']
-                label_probabilities = predictions['probabilities']
+            label_names, label_probabilities = self.filter_specified_labels(repo_owner,
+                                                                            repo_name,
+                                                                            predictions)
 
         # get the isssue handle
         issue = get_issue_handle(installation_id, repo_owner, repo_name, issue_num)

@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
 
-def test_predict_proba():
+def test_predict_probabilities():
     n_classes = 5
     n_samples = 20
     embedding_size = 5
@@ -19,7 +19,7 @@ def test_predict_proba():
 
     mlp_wrap = MLPWrapper(clf=mlp_clf)
     mlp_wrap.fit(X_train, y_train)
-    mlp_wrap_pred = mlp_wrap.predict_proba(X_test)
+    mlp_wrap_pred = mlp_wrap.predict_probabilities(X_test)
     assert mlp_clf_pred.all() == mlp_wrap_pred.all()
 
 
