@@ -3,11 +3,13 @@ import fire
 import dill as dpickle
 import requests
 import json
+import yaml
 import numpy as np
 from bs4 import BeautifulSoup
 from passlib.apps import custom_app_context as pwd_context
 from google.cloud import pubsub
 from google.cloud import storage
+from google.api_core.exceptions import AlreadyExists
 import logging
 from label_microservice.repo_config import RepoConfig
 from label_microservice.mlp import MLPWrapper
@@ -65,20 +67,7 @@ class Worker:
         #   paths returned from `RepoConfig(...)` are related to the specific
         #   repo_owner/repo_name.
         #   Will update them after finish the config map.
-        config = RepoConfig(repo_owner=repo_owner, repo_name=repo_name)
-        self.repo_owner = config.repo_owner
-        self.repo_name = config.repo_name
-
-        self.model_bucket_name = config.model_bucket_name
-        self.model_file = config.model_local_path
-        self.model_dest = config.model_gcs_path
-
-        self.labels_file = config.labels_local_path
-        self.labels_dest = config.labels_gcs_path
-
-        self.embeddings_bucket_name = config.embeddings_bucket_name
-        self.embeddings_file = config.embeddings_local_path
-        self.embeddings_dest = config.embeddings_gcs_path
+        self.config = RepoConfig(repo_owner=repo_owner, repo_name=repo_name)
 
     def check_subscription_path_exists(self, subscription_path):
         """
@@ -112,9 +101,12 @@ class Worker:
                                           self.topic_name)
         subscription_path = subscriber.subscription_path(self.project_id,
                                                          self.subscription_name)
-        if self.check_subscription_path_exists(subscription_path):
-            return
-        subscriber.create_subscription(name=subscription_path, topic=topic_path)
+        try:
+            subscriber.create_subscription(name=subscription_path, topic=topic_path)
+        except AlreadyExists:
+            logging.info(f'The subscription path {subscription_path} already exists')
+        except Exception as e:
+            raise e
 
     def subscribe(self):
         """
@@ -219,16 +211,16 @@ class Worker:
         """Download the model from GCS to local path."""
         # download model
         storage_client = storage.Client()
-        bucket = storage_client.get_bucket(self.model_bucket_name)
-        blob = bucket.get_blob(self.model_dest)
-        with open(self.model_file, 'wb') as f:
+        bucket = storage_client.get_bucket(self.config.model_bucket_name)
+        blob = bucket.get_blob(self.config.model_gcs_path)
+        with open(self.config.model_local_path, 'wb') as f:
             blob.download_to_file(f)
 
         # download lable columns
         storage_client = storage.Client()
-        bucket = storage_client.get_bucket(self.model_bucket_name)
-        blob = bucket.get_blob(self.labels_dest)
-        with open(self.labels_file, 'wb') as f:
+        bucket = storage_client.get_bucket(self.config.model_bucket_name)
+        blob = bucket.get_blob(self.config.labels_gcs_path)
+        with open(self.config.labels_local_path, 'wb') as f:
             blob.download_to_file(f)
 
     def load_label_columns(self):
@@ -240,8 +232,8 @@ class Worker:
         dict
             {'labels': list, 'probability_thresholds': {label_index: threshold}}
         """
-        with open(self.labels_file, 'rb') as f:
-            label_columns = dpickle.load(f)
+        with open(self.config.labels_local_path, 'r') as f:
+            label_columns = yaml.safe_load(f)
         return label_columns
 
     def predict_labels(self, repo_owner, repo_name, issue_num):
@@ -269,7 +261,7 @@ class Worker:
             return {'labels': [], 'probabilities': []}, None
 
         mlp_wrapper = MLPWrapper(clf=None,
-                                 model_file=self.model_file,
+                                 model_file=self.config.model_local_path,
                                  load_from_model=True)
         # change embedding from 1d to 2d for prediction and extract the result
         label_probabilities = mlp_wrapper.predict_proba([issue_embedding])[0]
