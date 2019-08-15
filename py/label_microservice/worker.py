@@ -207,6 +207,10 @@ class Worker:
         r = requests.post(url=self.embedding_api_endpoint,
                           headers={'Token': pwd_context.hash(self.embedding_api_key)},
                           json=data)
+        if r.status_code != 200:
+            logging.warning(f'Status code is {r.status_code} not 200: '
+                            'can not retrieve the embedding')
+            return None
 
         embeddings = np.frombuffer(r.content, dtype='<f4')[:1600]
         return embeddings
@@ -259,6 +263,11 @@ class Worker:
         issue_embedding = self.get_issue_embedding(repo_owner=repo_owner,
                                                    repo_name=repo_name,
                                                    issue_num=issue_num)
+
+        # if not retrieve the embedding, ignore to predict it
+        if issue_embedding is None:
+            return {'labels': [], 'probabilities': []}, None
+
         mlp_wrapper = MLPWrapper(clf=None,
                                  model_file=self.model_file,
                                  load_from_model=True)
