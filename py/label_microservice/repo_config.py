@@ -33,12 +33,12 @@ class RepoConfig:
         self.model_bucket_name = 'repo-models'
         self.embeddings_bucket_name = 'repo-embeddings'
 
-        self.model_gcs_path = f'{self.repo_owner}/{self.repo_name}.model'
-        self.labels_gcs_path = f'{self.repo_owner}/{self.repo_name}.labels'
-        self.embeddings_gcs_path = f'{self.repo_owner}/{self.repo_name}'
+        self.model_gcs_path = f'{self.repo_owner}/{self.repo_name}.model.dpkl'
+        self.labels_gcs_path = f'{self.repo_owner}/{self.repo_name}.labels.yaml'
+        self.embeddings_gcs_path = f'{self.repo_owner}/{self.repo_name}.dpkl'
 
         self.model_local_path = f'{self.repo_name}.dpkl'
-        self.labels_local_path = f'{self.repo_name}.labels.dpkl'
+        self.labels_local_path = f'{self.repo_name}.labels.yaml'
         self.embeddings_local_path = f'{self.repo_name}.emb.dpkl'
 
     def download_yaml_from_gcs(self, repo_owner, repo_name):
