@@ -62,7 +62,8 @@ def get_issue_text(num, idx, owner, repo, skip_issue=True):
     labels = label_find.get_text().strip().split('\n')
 
     if labels[0] == 'None yet':
-        return None
+        # return issues even though they haven't been labeled
+        labels = []
 
     return {'title':title,
             'url':url,

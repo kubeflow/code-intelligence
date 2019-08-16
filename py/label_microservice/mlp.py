@@ -2,6 +2,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_recall_curve
+import os
 import dill as dpickle
 import numpy as np
 import pandas as pd
@@ -14,16 +15,20 @@ class MLPWrapper:
                  clf,
                  model_file="model.dpkl",
                  precision_threshold=0.7,
-                 recall_threshold=0.5):
+                 recall_threshold=0.5,
+                 load_from_model=False):
         """Initialize parameters of the MLP classifier
         Args:
           clf: a sklearn.neural_network.MLPClassifier object
           model_file: the local path to save or load model
           precision_threshold: the threshold that the precision of one label must meet in order to be predicted
           recall_threshold: the threshold that the recall of one label must meet in order to be predicted
+          load_from_model: load classifier from model file or not
         """
         if clf:
             self.clf = clf
+        elif load_from_model:
+            self.load_model(model_file=model_file)
         else:
             raise Exception("You need to pass a MLPClassifier object to the wrapper")
         self.model_file = model_file
@@ -46,7 +51,7 @@ class MLPWrapper:
         """
         self.clf.fit(X, y)
 
-    def predict_proba(self, X):
+    def predict_probabilities(self, X):
         """Predict probabilities of all labels for data
         Args:
           X: features, numpy.array
@@ -64,7 +69,7 @@ class MLPWrapper:
         # split data
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=1234)
         self.fit(X_train, y_train)
-        y_pred = self.predict_proba(X_test)
+        y_pred = self.predict_probabilities(X_test)
 
         self.probability_thresholds = {}
         self.precisions = {}
@@ -125,5 +130,7 @@ class MLPWrapper:
         """
         if model_file:
             self.model_file = model_file
+        if not os.path.exists(self.model_file):
+            raise Exception("Model path {self.model_file} does not exist")
         with open(self.model_file, 'rb') as f:
             self.clf = dpickle.load(f)
