@@ -65,6 +65,7 @@ jupyter-client==5.3.1
 jupyter-console==6.0.0
 jupyter-core==4.5.0
 jwcrypto==0.6.0
+kfmd==0.1.8
 kfp==0.1.25
 kfp-server-api==0.1.18.3
 kiwisolver==1.1.0
