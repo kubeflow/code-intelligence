@@ -346,6 +346,8 @@ class Worker:
             label_names, label_probabilities = self.filter_specified_labels(repo_owner,
                                                                             repo_name,
                                                                             predictions)
+        else:
+            label_names = []
 
         # get the isssue handle
         issue = get_issue_handle(installation_id, repo_owner, repo_name, issue_num)
