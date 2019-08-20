@@ -4,31 +4,18 @@ from google.cloud import storage
 import logging
 
 class RepoConfig:
-    """Load YAML file for configs including repo info and corresponding GCS path"""
+    """Set up configs including file names and corresponding GCS path"""
 
-    def __init__(self, yaml_path=None, repo_owner=None, repo_name=None):
-        """Load config from a local YAML file.
-        If the local YAML file does not exist, download it from GCS given repo owner and name.
+    def __init__(self, repo_owner=None, repo_name=None):
+        """
+        Set up paths for local files and GCS files given repo owner and name.
         Args:
-          yaml_path: local YAML file, str
           repo_owner: repository owner, str
           repo_name: repository name, str
         """
 
-        if not yaml_path:
-            self.yaml_path = 'issue_label_bot.yaml'
-            self.download_yaml_from_gcs(repo_owner, repo_name)
-        elif not os.path.exists(yaml_path):
-            self.yaml_path = yaml_path
-            self.download_yaml_from_gcs(repo_owner, repo_name)
-        else:
-            self.yaml_path = yaml_path
-
-        with open(self.yaml_path, 'r') as f:
-            config = yaml.safe_load(f)
-
-        self.repo_owner = config['repository']['owner']
-        self.repo_name = config['repository']['name']
+        self.repo_owner = repo_owner
+        self.repo_name = repo_name
 
         self.model_bucket_name = 'repo-models'
         self.embeddings_bucket_name = 'repo-embeddings'
@@ -69,8 +56,5 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(message)s')
     logging.getLogger().setLevel(logging.INFO)
 
-    config = RepoConfig(yaml_path='issue_label_bot.yaml')
+    config = RepoConfig.load(repo_owner='kubeflow', repo_name='examples')
     logging.info(config.__dict__)
-
-    config2 = RepoConfig.load(repo_owner='kubeflow', repo_name='examples')
-    logging.info(config2.__dict__)
