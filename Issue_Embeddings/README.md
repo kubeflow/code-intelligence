@@ -54,7 +54,7 @@ The language model is built with the [fastai](http://nlp.fast.ai/) library.  The
 
 ### Putting it all together: hyper-parameter tuning
 
-The [hyperparam_sweep](/hyperparam_sweep) folder contains [lm_tune.py](/hyperparam_sweep/lm_tune.py) which is a script used to train the model.  Most importantly, we use this script in conjuction with [hyper-parameter sweeps in Weights & Biases](https://docs.wandb.com/docs/sweep.html)
+The [hyperparam_sweep](/Issue_Embeddings/hyperparam_sweep) folder contains [lm_tune.py](/hyperparam_sweep/lm_tune.py) which is a script used to train the model.  Most importantly, we use this script in conjuction with [hyper-parameter sweeps in Weights & Biases](https://docs.wandb.com/docs/sweep.html)
 
 We were able to try 538 different hyper-paramter combinations using Bayesian and random grid search concurrently to choose the best model:
 
