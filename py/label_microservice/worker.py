@@ -144,21 +144,27 @@ class Worker:
             issue_num = message.attributes['issue_num']
             logging.info(f'Receive issue #{issue_num} from {repo_owner}/{repo_name}')
 
-            # predict labels
-            self.load_yaml(repo_owner, repo_name)
-            self.download_model_from_gcs()
-            predictions, issue_embedding = self.predict_labels(repo_owner, repo_name, issue_num)
-            self.add_labels_to_issue(installation_id, repo_owner, repo_name,
-                                     issue_num, predictions)
+            try:
+                # predict labels
+                self.load_yaml(repo_owner, repo_name)
+                self.download_model_from_gcs()
+                predictions, issue_embedding = self.predict_labels(repo_owner, repo_name, issue_num)
+                self.add_labels_to_issue(installation_id, repo_owner, repo_name,
+                                         issue_num, predictions)
 
-            # log the prediction, which will be used to track the performance
-            log_dict = {
-                'repo_owner': repo_owner,
-                'repo_name': repo_name,
-                'issue_num': int(issue_num),
-                'labels': predictions['labels']
-            }
-            logging.info(log_dict)
+                # log the prediction, which will be used to track the performance
+                log_dict = {
+                    'repo_owner': repo_owner,
+                    'repo_name': repo_name,
+                    'issue_num': int(issue_num),
+                    'labels': predictions['labels']
+                }
+                logging.info(log_dict)
+
+            except Exception as e:
+                logging.error(f'Addressing issue #{issue_num} from {repo_owner}/{repo_name} causes an error')
+                logging.error(f'Error type: {type(e)}')
+                logging.error(e)
 
             # acknowledge the message, or pubsub will repeatedly attempt to deliver it
             message.ack()
