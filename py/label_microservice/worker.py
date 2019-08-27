@@ -162,6 +162,9 @@ class Worker:
                 logging.info(log_dict)
 
             except Exception as e:
+                # hard to find out which errors should be handled differently (e.g., retrying for multiple times)
+                # and how to handle the error that the same message causes for multiple times
+                # so use generic exception to ignore all errors for now
                 logging.error(f'Addressing issue #{issue_num} from {repo_owner}/{repo_name} causes an error')
                 logging.error(f'Error type: {type(e)}')
                 logging.error(e)
