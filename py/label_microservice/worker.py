@@ -1,15 +1,10 @@
 import os
 import fire
-import dill as dpickle
 import requests
-import json
 import yaml
 import numpy as np
-from bs4 import BeautifulSoup
 from passlib.apps import custom_app_context as pwd_context
 from google.cloud import pubsub
-from google.cloud import storage
-from google.api_core.exceptions import AlreadyExists
 import logging
 from label_microservice.repo_config import RepoConfig
 from label_microservice.mlp import MLPWrapper
@@ -17,6 +12,9 @@ from code_intelligence.github_util import init as github_init
 from code_intelligence.github_util import get_issue_handle
 from code_intelligence.github_util import get_yaml
 from code_intelligence.embeddings import get_issue_text
+from code_intelligence.gcs_util import download_file_from_gcs
+from code_intelligence.pubsub_util import check_subscription_name_exists
+from code_intelligence.pubsub_util import create_subscription_if_not_exists
 
 class Worker:
     """
@@ -69,24 +67,16 @@ class Worker:
         #   Will update them after finish the config map.
         self.config = RepoConfig(repo_owner=repo_owner, repo_name=repo_name)
 
-    def check_subscription_path_exists(self, subscription_path):
+    def check_subscription_name_exists(self):
         """
-        Check if the subscription path exists in the project.
-        Args:
-          subscription_path: subscription path in pubsub
+        Check if the subscription name exists in the project.
 
         Return
         ------
         bool
-            subscription_path exists in the project or not
+            subscription_name exists in the project or not
         """
-        subscriber = pubsub.SubscriberClient()
-        project_path = subscriber.project_path(self.project_id)
-        for existing_subscription_path in subscriber.list_subscriptions(project_path):
-            if existing_subscription_path.name == subscription_path:
-                logging.info(f'The subscription path {subscription_path} already exists')
-                return True
-        return False
+        return check_subscription_name_exists(self.project_id, self.subscription_name)
 
     def create_subscription_if_not_exists(self):
         """
@@ -95,18 +85,7 @@ class Worker:
         While multiple subscribers listen to the same subscription,
         subscribers receive a subset of the messages.
         """
-        subscriber = pubsub.SubscriberClient()
-        publisher = pubsub.PublisherClient()
-        topic_path = publisher.topic_path(self.project_id,
-                                          self.topic_name)
-        subscription_path = subscriber.subscription_path(self.project_id,
-                                                         self.subscription_name)
-        try:
-            subscriber.create_subscription(name=subscription_path, topic=topic_path)
-        except AlreadyExists:
-            logging.info(f'The subscription path {subscription_path} already exists')
-        except Exception as e:
-            raise e
+        create_subscription_if_not_exists(self.project_id, self.topic_name, self.subscription_name)
 
     def subscribe(self):
         """
@@ -210,18 +189,14 @@ class Worker:
     def download_model_from_gcs(self):
         """Download the model from GCS to local path."""
         # download model
-        storage_client = storage.Client()
-        bucket = storage_client.get_bucket(self.config.model_bucket_name)
-        blob = bucket.get_blob(self.config.model_gcs_path)
-        with open(self.config.model_local_path, 'wb') as f:
-            blob.download_to_file(f)
+        download_file_from_gcs(self.config.model_bucket_name,
+                               self.config.model_gcs_path,
+                               self.config.model_local_path)
 
         # download lable columns
-        storage_client = storage.Client()
-        bucket = storage_client.get_bucket(self.config.model_bucket_name)
-        blob = bucket.get_blob(self.config.labels_gcs_path)
-        with open(self.config.labels_local_path, 'wb') as f:
-            blob.download_to_file(f)
+        download_file_from_gcs(self.config.model_bucket_name,
+                               self.config.labels_gcs_path,
+                               self.config.labels_local_path)
 
     def load_label_columns(self):
         """
