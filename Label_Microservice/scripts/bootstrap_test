@@ -1,0 +1,12 @@
+#!/bin/sh
+
+cd $(dirname "$0")/../..
+
+PROJECT_ID=issue-label-bot-dev
+TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
+IMAGE_NAME=bot-worker-test:"$TIMESTAMP"
+GCR_PATH=gcr.io/"$PROJECT_ID"/bot-worker-test:"$TIMESTAMP"
+
+docker build -t $IMAGE_NAME -f Label_Microservice/deployment/Dockerfile.worker .
+docker tag $IMAGE_NAME $GCR_PATH
+gcloud docker -- push $GCR_PATH
