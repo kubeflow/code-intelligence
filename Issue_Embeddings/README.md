@@ -45,12 +45,12 @@ All routes expect `POST` requests with a header containing a `Token` field. Belo
 
 # Training the Language Model
 
-The language model is built with the [fastai](http://nlp.fast.ai/) library.  The [notebooks](/notebooks) folder contains a tutorial of the steps you need to build a language model:
+The language model is built with the [fastai](http://nlp.fast.ai/) library.  The [notebooks](/Issue_Embeddings/notebooks) folder contains a tutorial of the steps you need to build a language model:
 
-1. [01_AcquireData.ipynb](/notebooks/01_AcquireData.ipynb): Describes how to acquire and pre-process the data using [mdparse](https://github.com/machine-learning-apps/mdparse), which parses and annotates markdown files.
-2. [02_fastai_DataBunch.ipynb](/notebooks/02_fastai_DataBunch.ipynb):  The fastai library uses an object called a [Databunch](https://docs.fast.ai/basic_data.html#DataBunch) around pytorch's dataloader class to encapuslate additional metadata and functionality.  This notebook walks through the steps of preparing this data structure which will be used by the model for training.
-3. [03_Create_Model.ipynb](/notebooks/03_Create_Model.ipynb): This walks through the process of instantiating the fastai language model, along with callbacks for early stopping, logging and saving of artifacts.  Additionally, this notebook illustrates how to train the model.
-4. [04_Inference.ipynb](/notebooks/04_Inference.ipynb): shows how to use the language model to perform inference in order to extract latent features in the form of a 2,400 dimension vector from GitHub Issue text. This notebook shows how to load the Databunch and model and save only the model for inference.  [/flask_app/inference.py](/flask_app/inference.py) contains utilities that makes the inference process easier.
+1. [01_AcquireData.ipynb](/Issue_Embeddings/notebooks/01_AcquireData.ipynb): Describes how to acquire and pre-process the data using [mdparse](https://github.com/machine-learning-apps/mdparse), which parses and annotates markdown files.
+2. [02_fastai_DataBunch.ipynb](/Issue_Embeddings/notebooks/02_fastai_DataBunch.ipynb):  The fastai library uses an object called a [Databunch](https://docs.fast.ai/basic_data.html#DataBunch) around pytorch's dataloader class to encapuslate additional metadata and functionality.  This notebook walks through the steps of preparing this data structure which will be used by the model for training.
+3. [03_Create_Model.ipynb](/Issue_Embeddings/notebooks/03_Create_Model.ipynb): This walks through the process of instantiating the fastai language model, along with callbacks for early stopping, logging and saving of artifacts.  Additionally, this notebook illustrates how to train the model.
+4. [04_Inference.ipynb](/Issue_Embeddings/notebooks/04_Inference.ipynb): shows how to use the language model to perform inference in order to extract latent features in the form of a 2,400 dimension vector from GitHub Issue text. This notebook shows how to load the Databunch and model and save only the model for inference.  [/flask_app/inference.py](/flask_app/inference.py) contains utilities that makes the inference process easier.
 
 ### Putting it all together: hyper-parameter tuning
 
@@ -58,20 +58,20 @@ The [hyperparam_sweep](/Issue_Embeddings/hyperparam_sweep) folder contains [lm_t
 
 We were able to try 538 different hyper-paramter combinations using Bayesian and random grid search concurrently to choose the best model:
 
-![](/hyperparam_sweep/images/parallel_coordinates.png)
+![](/Issue_Embeddings/hyperparam_sweep/images/parallel_coordinates.png)
 
-The hyperparameter tuning process is described in greater detail in the [hyperparam_sweep](/hyperparam_sweep) folder.
+The hyperparameter tuning process is described in greater detail in the [hyperparam_sweep](/Issue_Embeddings/hyperparam_sweep) folder.
 
 # Files
  
- - [/notebooks](/notebooks): contains notebooks on how to gather and clean the data and train the language model.
- - [/hyperparam_sweep](/hyperparam_sweep): this folder contains instructions on doing a hyper-parameter sweep with [Weights & Biases](https://www.wandb.com).
- - [/flask_app](/flask_app): code for a flask app that is the API that listens for POST requests. 
- - [/script](/script): this directory contains the entry point for running the REST API server that end users will interface with:
-    - [dev](/script/dev): this bash script pulls the necessary docker images and starts the API server.
-    - [bootstrap](/script/bootstrap): this re-builds the docker image and pushes it to Dockerhub.  It is necessary to re-build the container anytime the code for the flask app or language model is updated.
-- [/deployment](/deployment): This directory contains files that are helpful in deploying the app.
-    - [Dockerfile](/deployment/Dockerfile) this is the definition of the container that is used to run the flask app.  The build for this container is hosted on DockerHub at [hamelsmu/issuefeatures-api-cpu](https://hub.docker.com/r/hamelsmu/issuefeatures-api-cpu).
+ - [/notebooks](/Issue_Embeddings/notebooks): contains notebooks on how to gather and clean the data and train the language model.
+ - [/hyperparam_sweep](/Issue_Embeddings/hyperparam_sweep): this folder contains instructions on doing a hyper-parameter sweep with [Weights & Biases](https://www.wandb.com).
+ - [/flask_app](/Issue_Embeddings/flask_app): code for a flask app that is the API that listens for POST requests. 
+ - [/script](/Issue_Embeddings/script): this directory contains the entry point for running the REST API server that end users will interface with:
+    - [dev](/Issue_Embeddings/script/dev): this bash script pulls the necessary docker images and starts the API server.
+    - [bootstrap](/Issue_Embeddings/script/bootstrap): this re-builds the docker image and pushes it to Dockerhub.  It is necessary to re-build the container anytime the code for the flask app or language model is updated.
+- [/deployment](/Issue_Embeddings/deployment): This directory contains files that are helpful in deploying the app.
+    - [Dockerfile](/Issue_Embeddings/deployment/Dockerfile) this is the definition of the container that is used to run the flask app.  The build for this container is hosted on DockerHub at [hamelsmu/issuefeatures-api-cpu](https://hub.docker.com/r/hamelsmu/issuefeatures-api-cpu).
     - *.yaml: these files relate to a Kubernetees deployment.
 
 
