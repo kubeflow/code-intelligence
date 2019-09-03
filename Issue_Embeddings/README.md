@@ -5,9 +5,9 @@
 
 # An API that returns embeddings from GitHub Issue Text.
 
-Embeddings are learned from a [language model Trained On 16M+ GitHub Issues](#a-language-model-trained-on-16m+-github-issues-for-transfer-learning).  
+Embeddings are learned from a language model Trained On 16M+ GitHub Issues.  
 
-The manifest files in [/deployment](/deployment) define a service that will return 2400 dimensional embeddings given the text of an issue.  The api endpoints are hosted on https://embeddings.gh-issue-labeler.com/
+The manifest files in [/deployment](/Issue_Embeddings/deployment) define a service that will return 2400 dimensional embeddings given the text of an issue.  The api endpoints are hosted on https://embeddings.gh-issue-labeler.com/
 
 All routes expect `POST` requests with a header containing a `Token` field. Below is  a list of endpoints:
 
