@@ -15,8 +15,7 @@ import json
 TOKEN_NAME = "GITHUB_TOKEN"
 
 # TODO(jlewi): If we make this an app maybe we should read this from a .github
-#file
-ALLOWED_KINDS = ["improvement/enhancement", "community/question", "kind/bug"]
+# file
 ALLOWED_PRIORITY = ["priority/p0", "priority/p1", "priority/p2",
                     "priority/p3"]
 
@@ -82,7 +81,7 @@ class TriageInfo(object):
       if e.get("__typename") == "LabeledEvent":
         name = e.get("label").get("name")
 
-        if name in ALLOWED_KINDS or name.startswith("community"):
+        if name.startswith("kind"):
           if info.kind_time:
             continue
           info.kind_time = t
@@ -160,7 +159,7 @@ class TriageInfo(object):
       lines.append("Issue needs triage:")
 
     if not self.kind_time:
-      lines.append("\t Issue needs one of the labels {0}".format(ALLOWED_KINDS))
+      lines.append("\t Issue needs a kind label")
 
     if not self.priority_time:
       lines.append("\t Issue needs one of the priorities {0}".format(ALLOWED_PRIORITY))
