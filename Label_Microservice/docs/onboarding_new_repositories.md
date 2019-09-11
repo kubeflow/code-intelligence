@@ -4,8 +4,6 @@
 
 Authors: Chun-Hsiang Wang ([chunhsiang@google.com](mailto:chunhsiang@google.com))
 
-[go/label-bot-onboarding](go/label-bot-onboarding)
-
 
 # TL;DR
 

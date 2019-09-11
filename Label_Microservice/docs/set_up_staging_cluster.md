@@ -4,8 +4,6 @@
 
 Authors: Chun-Hsiang Wang ([chunhsiang@google.com](mailto:chunhsiang@google.com))
 
-[go/test-cluster-setup](go/test-cluster-setup)
-
 
 # TL;DR
 
