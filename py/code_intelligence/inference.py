@@ -16,6 +16,7 @@ from torch.cuda import empty_cache
 import pandas as pd
 from tqdm.auto import tqdm
 import numpy as np
+import logging
 
 def pass_through(x):
     """Avoid messages when the model is deserialized in fastai library."""
@@ -191,20 +192,35 @@ class InferenceWrapper:
         length_arr = np.array(lengths)
         len_mask = length_arr.argsort()
         len_mask_reversed = len_mask.argsort()
-        batched_features = list(chunked([numericalized_docs[i] for i in len_mask], bs))
-        batched_lengths = list(chunked(length_arr[len_mask], bs))
+        ordered_features = [numericalized_docs[i] for i in len_mask]
+        ordered_lengths = length_arr[len_mask]
 
         # perform model inference
         hidden_states_batched = []
         pooled_states = []
-        for i, b in tqdm(enumerate(batched_features), desc="Model inference:"):
-            # pad the batch to the same length
-            bp = pad_sequence(b, batch_first=True, padding_value=self.pad_idx)
-            # perform inference
-            hidden_states = self._forward_pass(bp)
-            empty_cache()
-            # fetch the summary of the hidden states as the embedding
-            pooled_states.append(self.batch_seq_pool(hidden_states, batched_lengths[i]))
+        i = 0
+        total = len(numericalized_docs)
+        while i < total:
+            logging.info(f'Model inference: {i} / {total}')
+            try:
+                # pad the batch to the same length
+                bp = pad_sequence(ordered_features[i:i+bs], batch_first=True, padding_value=self.pad_idx)
+                # perform inference
+                hidden_states = self._forward_pass(bp)
+                empty_cache()
+                # fetch the summary of the hidden states as the embedding
+                pooled_states.append(self.batch_seq_pool(hidden_states, ordered_lengths[i:i+bs]))
+                i += bs
+            except RuntimeError as e:
+                # encounter CUDA out of memory error
+                if bs == 1:
+                    logging.error(f'Batch size has been 1, can not feed the size {ordered_lengths[i]} to CUDA')
+                    raise Exception(e)
+                # decrease the batch size because of CUDA out of memory
+                # not sure whether there is a good way to find a new batch size
+                bs = bs // 2
+                logging.info(f'CUDA out of memory, the new batch size is {bs}')
+                empty_cache()
 
         # restore the original order of the data by unsorting
         pooled_states = cat(pooled_states)[len_mask_reversed, :]
