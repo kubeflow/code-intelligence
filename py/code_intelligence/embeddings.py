@@ -97,18 +97,18 @@ def get_all_issue_text(owner, repo, inf_wrapper, workers=64):
     features = []
     labels = []
     nums = []
+    issues_dict = {'title': [], 'body': []}
     for issue in tqdm(filtered_issues):
         labels.append(issue['labels'])
         nums.append(issue['num'])
-        # calculate embedding
-        text = inf_wrapper.process_dict(issue)['text']
-        feature = inf_wrapper.get_pooled_features(text).detach().cpu()
-        # only need the first 1600 dimensions
-        features.append(feature[:, :1600])
+        issues_dict['title'].append(issue['title'])
+        issues_dict['body'].append(issue['body'])
+
+    features = inf_wrapper.df_to_embedding(pd.DataFrame.from_dict(issues_dict))
 
     assert len(features) == len(labels), 'Error you have mismatch b/w number of observations and labels.'
 
-    return {'features':torch.cat(features).numpy(),
+    return {'features': features[:, :1600],
             'labels': labels,
             'nums': nums}
 
