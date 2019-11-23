@@ -1,5 +1,8 @@
 name: Test-Triage
-on: [push]
+on: 
+  issues:
+    types: [opened, closed, reopened, transferred, labeled, unlabeled]
+    # Issue is created, Issue is closed, Issue added or removed from projects, Labels added/removed
 
 jobs:
   test:
@@ -11,4 +14,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           PROJECT_CARD_ID: 1 #test id
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
         
