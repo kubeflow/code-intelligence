@@ -1,9 +1,0 @@
-name: Test-Triage
-on: [push]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Build Container
-        uses: kubeflow/code-intelligence/Triage_Action@master
