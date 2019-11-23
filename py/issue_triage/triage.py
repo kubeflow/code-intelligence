@@ -740,8 +740,7 @@ mutation DeleteFromTriageProject($input: DeleteProjectCardInput!){
 
     if results.get("errors"):
       message = json.dumps(results.get("errors"))
-      logging.error(f"There was a problem removing the issue from the triage project; "
-                    "errors:\n{message}\n")
+      logging.error(f"There was a problem removing the issue from the triage project; errors:\n{message}\n")
       return
 
   def _add_triage_project(self, issue_info):
