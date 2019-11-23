@@ -1,0 +1,17 @@
+name: Check Triage Status of Issue
+on: 
+  issues:
+    types: [opened, closed, reopened, transferred, labeled, unlabeled]
+    # Issue is created, Issue is closed, Issue added or removed from projects, Labels added/removed
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update Kanban
+        uses: machine-learning-apps/kubeflow-triage@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Letting input PROJECT_CARD_ID use the default value
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
