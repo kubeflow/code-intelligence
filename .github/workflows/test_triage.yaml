@@ -6,4 +6,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Triage Issue
-        uses: kubeflow/code-intelligence/Triage_Action@master
+        uses: machine-learning-apps/kubeflow-triage@master
