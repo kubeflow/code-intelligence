@@ -12,7 +12,13 @@ import pprint
 import retrying
 import json
 
-TOKEN_NAME = "GITHUB_TOKEN"
+PROJECT_CARD_ID = os.getenv('INPUT_PROJECT_CARD_ID')
+ISSUE_NUMBER = os.getenv('INPUT_ISSUE_NUMBER')
+REPO = os.getenv('GITHUB_REPOSITORY')
+
+assert PROJECT_CARD_ID, "Input PROJECT_CARD_ID not supplied."
+assert ISSUE_NUMBER, "Input ISSUE_NUMBER not supplied."
+assert os.getenv('GITHUB_TOKEN'), "Secret GITHUB_TOKEN not supplied."
 
 # TODO(jlewi): If we make this an app maybe we should read this from a .github
 # file
@@ -23,11 +29,7 @@ REQUIRES_PROJECT = ["priority/p0", "priority/p1"]
 
 TRIAGE_PROJECT = "Needs Triage"
 
-# TODO(jlewi): Project card is currently hard coded
-# The notebook triage.ipynb contains a snippet to get the project card id
-PROJECT_CARD_ID = "MDEzOlByb2plY3RDb2x1bW41OTM0MzEz"
-
-class TriageInfo(object):
+class TriageInfo:
   """Class describing whether an issue needs triage"""
   def __init__(self):
     self.issue = None
@@ -790,5 +792,11 @@ if __name__ == "__main__":
                             '|%(message)s|%(pathname)s|%(lineno)d|'),
                     datefmt='%Y-%m-%dT%H:%M:%S',
                     )
-
-  fire.Fire(IssueTriage)
+  
+  triager = IssueTriage()
+  url = f"https://github.com/{REPO}/issues/{ISSUE_NUMBER}"
+  
+  logging.info(f'Triaging issue {ISSUE_NUMBER} - {url}')
+  
+  issue_info = triager.triage_issue(url)
+  logging.info(issue_info)
