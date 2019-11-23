@@ -678,7 +678,8 @@ class IssueTriage(object):
       issue = self._get_issue(issue["url"])
 
     info = TriageInfo.from_issue(issue)
-    logging.info(f"Issue {info.issue["url"]}:\nstate:{info.message()}\n")
+    url = info.issue["url"]
+    logging.info(f"Issue {url}:\nstate:{info.message()}\n")
 
     if not info.needs_triage:
       self._remove_triage_project(info)
