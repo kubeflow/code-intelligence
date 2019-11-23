@@ -370,8 +370,7 @@ class IssueTriage(object):
 
       if results.get("errors"):
         message = json.dumps(results.get("errors"))
-        logging.error("There was a problem issuing the query; errors:\n%s",
-                      "\n", message)
+        logging.error(f"There was a problem issuing the query; errors:\n{message}\n")
         return
 
       if not total_issues:
@@ -743,7 +742,7 @@ mutation DeleteFromTriageProject($input: DeleteProjectCardInput!){
     if results.get("errors"):
       message = json.dumps(results.get("errors"))
       logging.error(f"There was a problem removing the issue from the triage project; "
-                    "errors:\nmessage\n")
+                    "errors:\n{message}\n")
       return
 
   def _add_triage_project(self, issue_info):
