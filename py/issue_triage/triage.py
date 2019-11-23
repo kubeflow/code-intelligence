@@ -629,8 +629,7 @@ class IssueTriage(object):
 
     if results.get("errors"):
       message = json.dumps(results.get("errors"))
-      logging.error("There was a problem issuing the query; errors:\n%s",
-                        "\n".join(message))
+      logging.error(f"There was a problem issuing the query; errors:\n{message}\n")
       return
 
     issue = results["data"]["resource"]
@@ -782,8 +781,8 @@ mutation AddProjectIssueCard($input: AddProjectCardInput!){
       if not (len(results["errors"]) == 1 and
               results["errors"][0]["message"] == ALREADY_ADDED):
         message = json.dumps(results.get("errors"))
-        logging.error("There was a problem adding the issue to the project; "
-                      "errors:\n%s\n", join(message))
+        logging.error(f"There was a problem adding the issue to the project; "
+                      "errors:\n{message}\n")
         return
 
 if __name__ == "__main__":
