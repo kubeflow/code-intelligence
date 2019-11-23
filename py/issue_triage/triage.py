@@ -515,8 +515,7 @@ class IssueTriage(object):
 
       if results.get("errors"):
         message = json.dumps(results.get("errors"))
-        logging.error("There was a problem issuing the query; errors:\n%s",
-                      "\n", message)
+        logging.error(f"There was a problem issuing the query; errors:\n{message}\n")
         return
 
       issues = graphql.unpack_and_split_nodes(
@@ -679,8 +678,8 @@ class IssueTriage(object):
       issue = self._get_issue(issue["url"])
 
     info = TriageInfo.from_issue(issue)
-    logging.info("Issue %s:\nstate:%s\n", info.issue["url"], info.message())
-
+    logging.info(f"Issue {info.issue["url"]}:\nstate:{info.message()}\n")
+    
     if not info.needs_triage:
       self._remove_triage_project(info)
       return
