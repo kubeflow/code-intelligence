@@ -679,7 +679,7 @@ class IssueTriage(object):
 
     info = TriageInfo.from_issue(issue)
     logging.info(f"Issue {info.issue["url"]}:\nstate:{info.message()}\n")
-    
+
     if not info.needs_triage:
       self._remove_triage_project(info)
       return
@@ -778,8 +778,7 @@ mutation AddProjectIssueCard($input: AddProjectCardInput!){
       if not (len(results["errors"]) == 1 and
               results["errors"][0]["message"] == ALREADY_ADDED):
         message = json.dumps(results.get("errors"))
-        logging.error(f"There was a problem adding the issue to the project; "
-                      "errors:\n{message}\n")
+        logging.error(f"There was a problem adding the issue to the project; errors:\n{message}\n")
         return
 
 if __name__ == "__main__":
