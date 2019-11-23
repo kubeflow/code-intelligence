@@ -1,4 +1,4 @@
-name: Test-Triage
+name: Check Triage Status of Issue
 on: 
   issues:
     types: [opened, closed, reopened, transferred, labeled, unlabeled]
@@ -8,7 +8,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Triage Issue
+      - name: Update Kanban
         uses: machine-learning-apps/kubeflow-triage@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
