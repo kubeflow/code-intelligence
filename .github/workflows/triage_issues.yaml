@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Update Kanban
-        uses: machine-learning-apps/kubeflow-triage@master
+        uses: kubeflow/kubeflow-triage@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

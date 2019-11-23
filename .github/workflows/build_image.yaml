@@ -7,7 +7,7 @@ jobs:
       runs-on: ubuntu-latest
       steps:
       - uses: actions/checkout@master
-      - name: Prebuild Image
+      - name: Build Image
         run: |
           cd $GITHUB_WORKSPACE
           echo ${PASSWORD} | docker login -u $USERNAME --password-stdin
