@@ -13,6 +13,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          PROJECT_CARD_ID: 1 #How to get Project Card? Can you supply this manually?
+          # Letting input PROJECT_CARD_ID use the default value
           ISSUE_NUMBER: ${{ github.event.issue.number }}
-        
