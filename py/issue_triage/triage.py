@@ -15,10 +15,12 @@ import json
 PROJECT_CARD_ID = os.getenv('INPUT_PROJECT_CARD_ID')
 ISSUE_NUMBER = os.getenv('INPUT_ISSUE_NUMBER')
 REPO = os.getenv('GITHUB_REPOSITORY')
+TOKEN_NAME = "INPUT_PERSONAL_ACCESS_TOKEN"
+TOKEN = os.getenv(TOKEN_NAME)
 
 assert PROJECT_CARD_ID, "Input PROJECT_CARD_ID not supplied."
 assert ISSUE_NUMBER, "Input ISSUE_NUMBER not supplied."
-assert os.getenv('GITHUB_TOKEN'), "Secret GITHUB_TOKEN not supplied."
+assert TOKEN, "Input PERSONAL_ACCESS_TOKEN not supplied."
 
 # TODO(jlewi): If we make this an app maybe we should read this from a .github
 # file
