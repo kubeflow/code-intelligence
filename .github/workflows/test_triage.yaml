@@ -7,3 +7,8 @@ jobs:
     steps:
       - name: Triage Issue
         uses: machine-learning-apps/kubeflow-triage@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          PROJECT_CARD_ID: 1 #test id
+        
