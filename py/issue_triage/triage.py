@@ -708,8 +708,7 @@ class IssueTriage(object):
 
       if results.get("errors"):
         message = json.dumps(results.get("errors"))
-        logging.error("There was a problem commenting on the issue; errors:\n%s",
-                          "\n".join(message))
+        logging.error(f"There was a problem commenting on the issue; errors:\n{message}\n")
         return
 
     # add project
@@ -743,8 +742,8 @@ mutation DeleteFromTriageProject($input: DeleteProjectCardInput!){
 
     if results.get("errors"):
       message = json.dumps(results.get("errors"))
-      logging.error("There was a problem removing the issue from the triage project; "
-                    "errors:\n%s\n", join(message))
+      logging.error(f"There was a problem removing the issue from the triage project; "
+                    "errors:\nmessage\n")
       return
 
   def _add_triage_project(self, issue_info):
