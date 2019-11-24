@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Update Kanban
-        uses: kubeflow/code-intelligence/Issue_Triage/Action@master
+        uses: kubeflow/code-intelligence/Issue_Triage/action@master
         with:
           PROJECT_CARD_ID: 'MDEzOlByb2plY3RDb2x1bW41OTM0MzEz'
           ISSUE_NUMBER: ${{ github.event.issue.number }}
