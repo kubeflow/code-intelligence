@@ -1,5 +1,6 @@
 from issue_triage.triage import IssueTriage
 import os
+import logging
 
 PROJECT_CARD_ID = os.getenv('INPUT_PROJECT_CARD_ID')
 ISSUE_NUMBER = os.getenv('INPUT_ISSUE_NUMBER')
