@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Update Kanban
-        uses: kubeflow/code-intelligence/Issue_Triage/Action@master
+        uses: kubeflow/code-intelligence/Issue_Triage/action@master
         with:
           # Letting input PROJECT_CARD_ID use the default value
           ISSUE_NUMBER: ${{ github.event.issue.number }}
