@@ -11,6 +11,12 @@ assert ISSUE_NUMBER, "Input ISSUE_NUMBER not supplied."
 assert os.getenv("INPUT_PERSONAL_ACCESS_TOKEN"), "Must supply input PERSONAL_ACCESS_TOKEN for Action to Run."
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO,
+                      format=('%(levelname)s|%(asctime)s'
+                            '|%(message)s|%(pathname)s|%(lineno)d|'),
+                    datefmt='%Y-%m-%dT%H:%M:%S',
+                    )
+                    
     triager = IssueTriage()
     url = f"https://github.com/{REPO}/issues/{ISSUE_NUMBER}"
     logging.info(f'Triaging issue {ISSUE_NUMBER} - {url}')
