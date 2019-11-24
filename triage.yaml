@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Update Kanban
+        #TODO update to GCR
         uses: docker://hamelsmu/triage-issues
         with:
           PROJECT_CARD_ID: 'MDEzOlByb2plY3RDb2x1bW41OTM0MzEz'
