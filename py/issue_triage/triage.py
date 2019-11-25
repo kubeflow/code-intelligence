@@ -12,6 +12,10 @@ import pprint
 import retrying
 import json
 
+
+PROJECT_CARD_ID = os.getenv('INPUT_PROJECT_CARD_ID')
+assert PROJECT_CARD_ID, "Input PROJECT_CARD_ID not supplied."
+
 # TODO(jlewi): If we make this an app maybe we should read this from a .github
 # file
 ALLOWED_PRIORITY = ["priority/p0", "priority/p1", "priority/p2",
