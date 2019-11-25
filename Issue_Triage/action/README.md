@@ -26,13 +26,13 @@ jobs:
         with:
           NEEDS_TRIAGE_PROJECT_CARD_ID: 'MDEzOlByb2plY3RDb2x1bW41OTM0MzEz'
           ISSUE_NUMBER: ${{ github.event.issue.number }}
-          PERSONAL_ACCESS_TOKEN: ${{ secrets.triage_projects_github_token }}
+          GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.triage_projects_github_token }}
 ```
 
 ## Mandatory Inputs
 
 1. **NEEDS_TRIAGE_PROJECT_CARD_ID**: The Project Card ID that you want to move issues to.  Defaults to `MDEzOlByb2plY3RDb2x1bW41OTM0MzEz`
 2. **ISSUE_NUMBER**: The issue number in the current repo that you want to triage
-3. **PERSONAL_ACCESS_TOKEN**: A personal access token with authorization to modify the project board.
+3. **GITHUB_PERSONAL_ACCESS_TOKEN**: A personal access token with authorization to modify the project board.
 
 
