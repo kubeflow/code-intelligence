@@ -2,7 +2,7 @@ name: 'Triage Kubeflow Issues'
 description: Triage issues for the kubeflow project.  https://github.com/kubeflow/
 author: Hamel Husain
 inputs:
-  PROJECT_CARD_ID:
+  NEEDS_TRIAGE_PROJECT_CARD_ID:
     description: The Project Card ID that you want to move issues to.
     required: true
     default: 'MDEzOlByb2plY3RDb2x1bW41OTM0MzEz'

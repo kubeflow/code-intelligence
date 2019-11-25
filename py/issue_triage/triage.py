@@ -13,8 +13,7 @@ import retrying
 import json
 
 
-PROJECT_CARD_ID = os.getenv('INPUT_PROJECT_CARD_ID')
-assert PROJECT_CARD_ID, "Environment variable INPUT_PROJECT_CARD_ID not supplied."
+PROJECT_CARD_ID = os.getenv('INPUT_NEEDS_TRIAGE_PROJECT_CARD_ID', "MDEzOlByb2plY3RDb2x1bW41OTM0MzEz")
 
 # TODO(jlewi): If we make this an app maybe we should read this from a .github
 # file
