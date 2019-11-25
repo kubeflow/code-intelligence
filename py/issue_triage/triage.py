@@ -12,8 +12,6 @@ import pprint
 import retrying
 import json
 
-assert os.getenv("INPUT_PERSONAL_ACCESS_TOKEN"), "Environment Variable INPUT_PERSONAL_ACCESS_TOKEN not supplied."
-
 # TODO(jlewi): If we make this an app maybe we should read this from a .github
 # file
 ALLOWED_PRIORITY = ["priority/p0", "priority/p1", "priority/p2",

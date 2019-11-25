@@ -9,7 +9,7 @@ import pprint
 import retrying
 import json
 
-TOKEN_NAME = "INPUT_PERSONAL_ACCESS_TOKEN"
+TOKEN_NAME = "INPUT_PERSONAL_ACCESS_TOKEN" if os.getenv("INPUT_PERSONAL_ACCESS_TOKEN") else "GITHUB_TOKEN"
 PULL_REQUEST_TYPE = "PullRequest"
 
 # TODO(jlewi): Rewrite this code to use:

@@ -9,10 +9,12 @@ class GraphQLClient(object):
   """A graphql client for GitHub"""
 
   def __init__(self):
-    if not os.getenv("INPUT_PERSONAL_ACCESS_TOKEN"):
-      raise ValueError("INPUT_PERSONAL_ACCESS_TOKEN must be present as an environment variable upon instantiating this object.")
+    if not os.getenv("INPUT_PERSONAL_ACCESS_TOKEN") and not os.getenv("GITHUB_TOKEN") :
+      raise ValueError("INPUT_PERSONAL_ACCESS_TOKEN or GITHUB_TOKEN must be present as an environment variable upon instantiating this object.")
+    
+    token = os.getenv("INPUT_PERSONAL_ACCESS_TOKEN", default="GITHUB_TOKEN")
     self._headers = {"Authorization":
-                     "Bearer {0}".format(os.getenv("INPUT_PERSONAL_ACCESS_TOKEN"))}
+                     "Bearer {0}".format(token)}
 
   def run_query(self, query, variables=None):
     """Issue the GraphQL query and return the results.
