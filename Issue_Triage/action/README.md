@@ -49,7 +49,7 @@ jobs:
    .github/workflows/
    ```
 
-1. Create a secret for the repository called `triage_projects_github_token` which has a GitHub personal access token with the following permissions
+1. [Create a secret for the repository](https://help.github.com/en/actions/automating-your-workflow-with-github-actions/creating-and-using-encrypted-secrets) called `triage_projects_github_token` which has a [GitHub personal access token](https://github.com/settings/tokens) with the following permissions
 
    * admin:org read & write
      * Needed to modify projects
