@@ -17,4 +17,4 @@ branding:
   icon: 'check-square'
 runs:
   using: 'docker'
-  image: 'docker://hamelsmu/kubeflow-triage'
+  image: 'docker://kubeflow/kubeflow-triage'
