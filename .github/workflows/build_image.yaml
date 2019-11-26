@@ -12,8 +12,8 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           echo ${PASSWORD} | docker login -u $USERNAME --password-stdin
-          docker build -t hamelsmu/kubeflow-triage -f Issue_Triage/Dockerfile .
-          docker push hamelsmu/kubeflow-triage
+          docker build -t kubeflow/kubeflow-triage -f Issue_Triage/Dockerfile .
+          docker push kubeflow/kubeflow-triage
         env:
           USERNAME: ${{ secrets.DOCKER_USERNAME }}
           PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
