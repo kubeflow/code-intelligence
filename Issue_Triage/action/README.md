@@ -1,5 +1,11 @@
 # Triage Issues For Kubeflow
-A GitHub Action that triages issues for the [Kubeflow](https://github.com/kubeflow/) project.
+A GitHub Action that automatically adds/removes issues from the Project [Needs Triage](https://github.com/orgs/kubeflow/projects/26)
+
+* Kubeflow's triage criterion are defined in [issue_triage.md](https://github.com/kubeflow/community/blob/master/proposals/issue_triage.md) 
+
+  * This doc provides more information about Kubeflow's process for triaging issues
+
+* The code for actually triaging issues is in [triage.py](https://github.com/kubeflow/code-intelligence/blob/master/py/issue_triage/triage.py)
 
 ## Discussion
 
@@ -50,3 +56,8 @@ jobs:
 
    * repo:public_repo
       * needed to see issues
+
+1. Kubeflow repositories should use the personal access token **issue-triage** for the **kubeflow-bot** GitHub account
+
+   * The access token is currently stored in Google's internal key management system
+   * The google team has access and can add the key to repositories as necessary
