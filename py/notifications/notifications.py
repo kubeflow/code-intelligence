@@ -9,7 +9,15 @@ import pprint
 import retrying
 import json
 
-TOKEN_NAME = "GITHUB_TOKEN"
+TOKEN_NAME_PREFERENCE = ["INPUT_GITHUB_PERSONAL_ACCESS_TOKEN", "GITHUB_PERSONAL_ACCESS_TOKEN", "GITHUB_TOKEN"]
+
+for token in TOKEN_NAME_PREFERENCE:
+  if os.getenv(token):
+    TOKEN_NAME = token
+    break
+
+assert TOKEN_NAME, f"You must supply one of the following environment variables: {', '.join(TOKEN_NAME_PREFERENCE)}"
+
 PULL_REQUEST_TYPE = "PullRequest"
 
 # TODO(jlewi): Rewrite this code to use:

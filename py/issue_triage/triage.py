@@ -12,7 +12,8 @@ import pprint
 import retrying
 import json
 
-TOKEN_NAME = "GITHUB_TOKEN"
+
+PROJECT_CARD_ID = os.getenv('INPUT_NEEDS_TRIAGE_PROJECT_CARD_ID', "MDEzOlByb2plY3RDb2x1bW41OTM0MzEz")
 
 # TODO(jlewi): If we make this an app maybe we should read this from a .github
 # file
@@ -23,11 +24,7 @@ REQUIRES_PROJECT = ["priority/p0", "priority/p1"]
 
 TRIAGE_PROJECT = "Needs Triage"
 
-# TODO(jlewi): Project card is currently hard coded
-# The notebook triage.ipynb contains a snippet to get the project card id
-PROJECT_CARD_ID = "MDEzOlByb2plY3RDb2x1bW41OTM0MzEz"
-
-class TriageInfo(object):
+class TriageInfo:
   """Class describing whether an issue needs triage"""
   def __init__(self):
     self.issue = None
@@ -368,8 +365,7 @@ class IssueTriage(object):
 
       if results.get("errors"):
         message = json.dumps(results.get("errors"))
-        logging.error("There was a problem issuing the query; errors:\n%s",
-                      "\n", message)
+        logging.error(f"There was a problem issuing the query; errors:\n{message}\n")
         return
 
       if not total_issues:
@@ -514,8 +510,7 @@ class IssueTriage(object):
 
       if results.get("errors"):
         message = json.dumps(results.get("errors"))
-        logging.error("There was a problem issuing the query; errors:\n%s",
-                      "\n", message)
+        logging.error(f"There was a problem issuing the query; errors:\n{message}\n")
         return
 
       issues = graphql.unpack_and_split_nodes(
@@ -627,8 +622,7 @@ class IssueTriage(object):
 
     if results.get("errors"):
       message = json.dumps(results.get("errors"))
-      logging.error("There was a problem issuing the query; errors:\n%s",
-                        "\n".join(message))
+      logging.error(f"There was a problem issuing the query; errors:\n{message}\n")
       return
 
     issue = results["data"]["resource"]
@@ -679,7 +673,8 @@ class IssueTriage(object):
       issue = self._get_issue(issue["url"])
 
     info = TriageInfo.from_issue(issue)
-    logging.info("Issue %s:\nstate:%s\n", info.issue["url"], info.message())
+    url = info.issue["url"]
+    logging.info(f"Issue {url}:\nstate:{info.message()}\n")
 
     if not info.needs_triage:
       self._remove_triage_project(info)
@@ -707,8 +702,7 @@ class IssueTriage(object):
 
       if results.get("errors"):
         message = json.dumps(results.get("errors"))
-        logging.error("There was a problem commenting on the issue; errors:\n%s",
-                          "\n".join(message))
+        logging.error(f"There was a problem commenting on the issue; errors:\n{message}\n")
         return
 
     # add project
@@ -742,8 +736,7 @@ mutation DeleteFromTriageProject($input: DeleteProjectCardInput!){
 
     if results.get("errors"):
       message = json.dumps(results.get("errors"))
-      logging.error("There was a problem removing the issue from the triage project; "
-                    "errors:\n%s\n", join(message))
+      logging.error(f"There was a problem removing the issue from the triage project; errors:\n{message}\n")
       return
 
   def _add_triage_project(self, issue_info):
@@ -780,8 +773,7 @@ mutation AddProjectIssueCard($input: AddProjectCardInput!){
       if not (len(results["errors"]) == 1 and
               results["errors"][0]["message"] == ALREADY_ADDED):
         message = json.dumps(results.get("errors"))
-        logging.error("There was a problem adding the issue to the project; "
-                      "errors:\n%s\n", join(message))
+        logging.error(f"There was a problem adding the issue to the project; errors:\n{message}\n")
         return
 
 if __name__ == "__main__":
