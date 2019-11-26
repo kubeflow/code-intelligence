@@ -35,4 +35,18 @@ jobs:
 2. **ISSUE_NUMBER**: The issue number in the current repo that you want to triage
 3. **GITHUB_PERSONAL_ACCESS_TOKEN**: A personal access token with authorization to modify the project board.
 
+### Installing the action on a repository
 
+1. Create a workflow like the one above in your repository in the directory
+
+   ```
+   .github/workflows/
+   ```
+
+1. Create a secret for the repository called `triage_projects_github_token` which has a GitHub personal access token with the following permissions
+
+   * admin:org read & write
+     * Needed to modify projects
+
+   * repo:public_repo
+      * needed to see issues
