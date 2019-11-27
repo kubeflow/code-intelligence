@@ -14,11 +14,12 @@ We build these tools with the help of Kubeflow, in order to dog-food tools that 
 
 2. [Issue-Embeddings](/Issue_Embeddings): A REST-API that returns 2400 dimensional embedding given an issue title and body.  This can be used for several downstream applications such as (1) label prediction, (2) duplicate detection (3) reviewer recommendation, etc.  You can also retrieve the embeddings for all issues in a repo in bulk at once.
 
+3. [Issue-Triage](/Issue_Triage): Tools that assist with triaging issues for Kubeflow, as discussed in [#280](https://github.com/kubeflow/community/issues/280).  This does not use any machine learning as of yet, but is something that is currently under research.
+
 ### Under Construction :construction:
 
 1. [Label-Microservice](/Label_Microservice): A stand-alone service that receives as input an issue url: _example: `github.com/kubeflow/<repo>/issues/<issue_num>_` and returns repo-specific label predictions.  This leverages transfer learning via the [Issue-Embeddings](/Issue_Embeddings) API.  The goal of this project is to prototype this functionality by redirecting a subset of traffic from Issue-Label-Bot (starting with just Kubeflow/Kubeflow) for testing.
 
-2. [Issue-Triage](/Issue_Triage): Tools that assist with triaging issues for Kubeflow, as discussed in [#280](https://github.com/kubeflow/community/issues/280).  
 
 3. [Notifications](/Notifications): TODO
 
