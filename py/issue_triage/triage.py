@@ -83,7 +83,7 @@ class TriageInfo:
             continue
           info.kind_time = t
 
-        if name.startswith("area"):
+        if name.startswith("area") or name.startswith("platform"):
           if info.area_time:
             continue
           info.area_time = t
