@@ -99,14 +99,13 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
       [issue_embedding])[0]
 
     # check thresholds to get labels that need to be predicted
-    predictions = {'labels': [], 'probabilities': []}
+    predictions = {}
     for i in range(len(label_probabilities)):
       # if the threshold of any label is None, just ignore it
       # because the label does not meet both of precision & recall thresholds
       if self._label_thresholds[i] and label_probabilities[i] >= self._label_thresholds[i]:
-        predictions['labels'].append(self._label_names[i])
-        predictions['probabilities'].append(label_probabilities[i])
-    return predictions, issue_embedding
+        predictions[self._label_names[i]] = label_probabilities[i]
+    return predictions
 
   def _get_issue_embedding(self, title, text):
     """Get the embedding of the issue by calling GitHub Issue
