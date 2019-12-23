@@ -1,6 +1,6 @@
 """The models packages defines wrappers around different models."""
 
-class IssueLabelerModel:
+class IssueLabelModel:
   """A base class for all Issue label models.
 
   This class defines a common interface for all issue label models.

@@ -7,7 +7,7 @@ import dill as dpickle
 from urllib.request import urlopen
 from label_microservice import models
 
-class UniversalKindLabelModel(models.IssueLabelerModel):
+class UniversalKindLabelModel(models.IssueLabelModel):
   """UniversalKindLabelModel is a universal model that is trained across all repos.
 
   The model predicts the kind for an issue.
