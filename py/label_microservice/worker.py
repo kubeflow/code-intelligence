@@ -223,6 +223,9 @@ class Worker:
     def predict_issue_probability(self, repo_owner, repo_name, issue_num):
         """
         Predict probabilities of labels for an issue.
+
+        This function returns probabilities for all labels in the model.
+
         Args:
           repo_owner: repo owner
           repo_name: repo name
@@ -251,8 +254,11 @@ class Worker:
         return label_probabilities, issue_embedding
 
     def predict_labels(self, repo_owner, repo_name, issue_num):
-        """
-        Predict labels for given issue.
+        """Predict labels for given issue.
+
+        This function only returns predictions for labels whose probability
+        exceeds the desired thresholds.
+
         Args:
           repo_owner: repo owner
           repo_name: repo name
