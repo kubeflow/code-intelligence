@@ -26,11 +26,7 @@ class Worker:
     def __init__(self,
                  project_id='issue-label-bot-dev',
                  topic_name='event_queue',
-                 subscription_name='subscription_for_event_queue',
-                 # TODO(jlewi): We can probably get rid of this line since
-                 # we now have repo_specific_model.py
-                 #embedding_api_endpoint='https://embeddings.gh-issue-labeler.com/text'
-                 ):
+                 subscription_name='subscription_for_event_queue',):
         """
         Initialize the parameters and GitHub app.
         Args:
@@ -45,31 +41,12 @@ class Worker:
         self.topic_name = topic_name
         self.subscription_name = subscription_name
 
-        # TODO(jlewi): We should be able to delete these lines because
-        # the code is now in repo_specific_model
-        # self.embedding_api_endpoint = embedding_api_endpoint
-        #self.embedding_api_key = os.environ['GH_ISSUE_API_KEY']
         self.app_url = os.environ['APP_URL']
 
         # init GitHub app
         github_init()
         # init pubsub subscription
         self.create_subscription_if_not_exists()
-
-    # TODO(jlewi): Code should be obosolete; can now use repo_specific_model
-    #def load_yaml(self, repo_owner, repo_name):
-        #"""
-        #Load config from the YAML of the specific repo_owner/repo_name.
-        #Args:
-          #repo_owner: str
-          #repo_name: str
-        #"""
-        ## TODO(chunhsiang): for now all the paths including gcs and local sides
-        ##   are set using repo_owner/repo_name (see repo_config.py), meaning the
-        ##   paths returned from `RepoConfig(...)` are related to the specific
-        ##   repo_owner/repo_name.
-        ##   Will update them after finish the config map.
-        #self.config = RepoConfig(repo_owner=repo_owner, repo_name=repo_name)
 
     def check_subscription_name_exists(self):
         """
@@ -164,140 +141,6 @@ class Worker:
             logging.info(future.result())
         except KeyboardInterrupt:
             logging.info(future.cancel())
-
-    # TODO(jlewi): Code has moved to repo_specific_model we should be able
-    # to delete this code.
-    #def get_issue_embedding(self, repo_owner, repo_name, issue_num):
-        #"""
-        #Get the embedding of the issue by calling GitHub Issue
-        #Embeddings API endpoint.
-        #Args:
-          #repo_owner: repo owner
-          #repo_name: repo name
-          #issue_num: issue index
-
-        #Return
-        #------
-        #numpy.ndarray
-            #shape: (1600,)
-        #"""
-
-        #issue_text = get_issue_text(owner=repo_owner,
-                                    #repo=repo_name,
-                                    #num=issue_num,
-                                    #idx=None)
-        #data = {'title': issue_text['title'],
-                #'body': issue_text['body']}
-
-        ## sending post request and saving response as response object
-        #r = requests.post(url=self.embedding_api_endpoint,
-                          #headers={'Token': pwd_context.hash(self.embedding_api_key)},
-                          #json=data)
-        #if r.status_code != 200:
-            #logging.warning(f'Status code is {r.status_code} not 200: '
-                            #'can not retrieve the embedding')
-            #return None
-
-        #embeddings = np.frombuffer(r.content, dtype='<f4')[:1600]
-        #return embeddings
-
-    # TODO(jlewi): Code has moved to repo_specific_model
-    #def download_model_from_gcs(self):
-        #"""Download the model from GCS to local path."""
-        ## download model
-        #download_file_from_gcs(self.config.model_bucket_name,
-                               #self.config.model_gcs_path,
-                               #self.config.model_local_path)
-
-        ## download lable columns
-        #download_file_from_gcs(self.config.model_bucket_name,
-                               #self.config.labels_gcs_path,
-                               #self.config.labels_local_path)
-
-    # TODO(jlewi): Move the code into repo_specific_model
-    #def load_label_columns(self):
-        #"""
-        #Load label info from local path.
-
-        #Return
-        #------
-        #dict
-            #{'labels': list, 'probability_thresholds': {label_index: threshold}}
-        #"""
-        #with open(self.config.labels_local_path, 'r') as f:
-            #label_columns = yaml.safe_load(f)
-        #return label_columns
-
-    #def predict_issue_probability(self, repo_owner, repo_name, issue_num):
-        #"""
-        #Predict probabilities of labels for an issue.
-
-        #This function returns probabilities for all labels in the model.
-
-        #Args:
-          #repo_owner: repo owner
-          #repo_name: repo name
-          #issue_num: issue index
-
-        #Return
-        #------
-        #numpy.ndarray
-            #shape: (label_count,)
-        #numpy.ndarray
-            #shape: (1600,)
-        #"""
-        #issue_embedding = self.get_issue_embedding(repo_owner=repo_owner,
-                                                   #repo_name=repo_name,
-                                                   #issue_num=issue_num)
-
-        ## if not retrieve the embedding, ignore to predict it
-        #if issue_embedding is None:
-            #return [], None
-
-        #mlp_wrapper = MLPWrapper(clf=None,
-                                 #model_file=self.config.model_local_path,
-                                 #load_from_model=True)
-        ## change embedding from 1d to 2d for prediction and extract the result
-        #label_probabilities = mlp_wrapper.predict_probabilities([issue_embedding])[0]
-        #return label_probabilities, issue_embedding
-
-    # TODO(jlewi): This code should now be in repo_specific_model
-    #def predict_labels(self, repo_owner, repo_name, issue_num):
-        #"""Predict labels for given issue.
-
-        #This function only returns predictions for labels whose probability
-        #exceeds the desired thresholds.
-
-        #Args:
-          #repo_owner: repo owner
-          #repo_name: repo name
-          #issue_num: issue index
-
-        #Return
-        #------
-        #dict
-            #{'labels': list, 'probabilities': list}
-        #numpy.ndarray
-            #shape: (1600,)
-        #"""
-        #logging.info(f'Predicting labels for the issue #{issue_num} from {repo_owner}/{repo_name}')
-        ## get probabilities of labels for an issue
-        #label_probabilities, issue_embedding = self.predict_issue_probability(repo_owner, repo_name, issue_num)
-
-        ## get label info from local file
-        #label_columns = self.load_label_columns()
-        #label_names = label_columns['labels']
-        #label_thresholds = label_columns['probability_thresholds']
-
-        ## check thresholds to get labels that need to be predicted
-        #predictions = {'labels': [], 'probabilities': []}
-        #for i in range(len(label_probabilities)):
-            ## if the threshold of any label is None, just ignore it
-            ## because the label does not meet both of precision & recall thresholds
-            #if label_thresholds[i] and label_probabilities[i] >= label_thresholds[i]:
-                #predictions['labels'].append(label_names[i])
-                #predictions['probabilities'].append(label_probabilities[i])
-        #return predictions, issue_embedding
 
     def filter_specified_labels(self, repo_owner, repo_name, predictions):
         """

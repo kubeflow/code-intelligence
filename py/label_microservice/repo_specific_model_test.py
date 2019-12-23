@@ -25,7 +25,7 @@ def test_predict_labels():
 
   This function mocks out the embedding service and the MLPWorker.
   """
-  model = repo_specifc_model.RepoSpecificLabelModel()
+  model = repo_specific_model.RepoSpecificLabelModel()
 
   model._mlp_predictor = mock.MagicMock(spec=mlp.MLPWrapper)
   model._mlp_predictor.predict_probabilities.return_value = [[.2, .9]]
@@ -47,10 +47,10 @@ def test_predict_labels():
 def test_get_issue_embedding_not_found(mock_post):
   "Testing get_issue_embedding function when embedding service returns 404."""
 
-  model = repo_specifc_model.RepoSpecificLabelModel()
-
+  model = repo_specific_model.RepoSpecificLabelModel()
+  model._embedding_api_key = "1234abcd"
   mock_post.return_value.status_code = 404
-  issue_embedding = model.get_issue_embedding("title", "text")
+  issue_embedding = model._get_issue_embedding("title", "text")
   # issue_embedding should be None
   assert not issue_embedding
 

@@ -14,4 +14,4 @@ fairing/__pycache__/**
 py/code_intelligence/.data/**
 
 # TODO(jlewi): Is this a remote module? Why is the fairing src getting cloned here?
-Label_Microservice/src/fairing/**
+Label_Microservice/src/**
