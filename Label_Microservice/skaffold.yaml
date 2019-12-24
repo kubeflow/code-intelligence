@@ -1,0 +1,29 @@
+# Reference: https://skaffold.dev/docs/references/yaml/
+apiVersion: skaffold/v2alpha1
+kind: Config
+metadata:
+  name: label-microservice
+build:
+  artifacts:
+  - image: gcr.io/issue-label-bot-dev/bot-worker
+    # Set the context to the root directory. 
+    # All paths in the Dockerfile should be relative to this one.
+    context: ..
+    kaniko:
+      dockerfile: Label_Microservice/deployment/Dockerfile.worker
+      buildContext:
+        gcsBucket: issue-label-bot-dev_skaffold-kaniko
+      env: 
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /secret/user-gcp-sa.json
+      cache: {}
+  cluster:
+    # pullSecret can be set to a local file from which the pull secret should be created.
+    pullSecretName: user-gcp-sa
+    # TODO(jlewi): We should probably change this to the issue label bot dev namespace
+    namespace: kubeflow-issue-label-bot
+deploy:
+  kubectl:
+    manifests:
+    - deployment/deployments-test.yaml
+    - deployment/deployments.yaml
