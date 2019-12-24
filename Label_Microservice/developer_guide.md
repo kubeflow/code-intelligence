@@ -37,8 +37,35 @@ Setup a namespace for your development
 
 1. Set the namespace in `deployment/overlays/dev/kustomization.yaml`
 
+1. Port-forward the local port to the remote service
+
+   ```
+   kubectl -n ${NAMESPACE} port-forward service/label-bot-worker 8080:80
+   ```
+
+   * TODO(jlewi): skaffold supposedly will create local port-forwarding automatically; need to investigate that
+
+1. Send a prediction request
+
+   ```
+   curl -d '{"title":"some title", "text":"sometext"}' -H "Content-Type: application/json" -X POST http://localhost:8080/predict
+   ```   
+## Unresolved Issues
+
+* skaffold continuous mode (`skaffold dev` ) doesn't appear to detect changes in the python files and retrigger the build and deployment
+
+
+### Kaniko Image Caching
+
+* Kaniko will cache the output of RUN commands using remote layers ([info](https://github.com/GoogleContainerTools/kaniko#caching))
+
+* This means the command `RUN pip install -r requirements.worker.txt` will result in a cached layer
+
+  * **TODO(jlewi)** When using skaffold and kaniko its not clear whether the cache is being invalidated when requirements.worker.txt is changing.
 
 
 ## Next Steps
 
+* Can we use [Skaffold sync](https://skaffold.dev/docs/references/yaml/) to sync the python code into the container
+  so we can skip rebuilds?
 * Look into using [skaffold profiles](https://skaffold.dev/docs/environment/profiles/)

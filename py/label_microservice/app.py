@@ -7,8 +7,18 @@ app = flask.Flask(__name__)
 
 @app.route("/health_check", methods=["GET"])
 def health_check():
-    "route for load balancer."
-    return flask.jsonify({'success':True}), 200, {'ContentType':'application/json'}
+  """Return a health check"""
+  return flask.jsonify({'success':True}), 200, {'ContentType':'application/json'}
+
+@app.route("/predict", methods=["POST"])
+def predict():
+  "route for load balancer."
+  content = flask.request.json
+  response = {
+    "in_tile": content["title"],
+    "in_text": content["text"],
+  }
+  return flask.jsonify(response), 200, {'ContentType':'application/json'}
 
 if __name__ == "__main__":
   # make sure things reload
