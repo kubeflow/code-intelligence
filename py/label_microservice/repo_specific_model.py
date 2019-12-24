@@ -76,7 +76,7 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
 
     return model
 
-  def predict_issue_labels(self, title:str , text:str ):
+  def predict_issue_labels(self, title:str , text:str):
     """Return a dictionary of label probabilities.
 
     Args:
