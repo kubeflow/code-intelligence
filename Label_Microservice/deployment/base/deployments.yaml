@@ -1,0 +1,63 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+    name: worker
+spec:
+    replicas: 5
+    template:
+      metadata:
+        labels:
+          app: worker          
+      spec:
+        volumes:
+        - name: google-cloud-key
+          secret:
+            secretName: user-gcp-sa
+        containers:
+        - name: mycontainer
+          image: gcr.io/issue-label-bot-dev/bot-worker
+          command: ['python3', '-m', 'label_microservice.app']
+          volumeMounts:
+            - name: google-cloud-key
+              mountPath: /var/secrets/google
+          env:
+            - name: PORT
+              value: "80"
+            #- name: PROJECT_ID
+            #  valueFrom:
+            #    secretKeyRef:
+            #      name: ml-app-inference-secret
+            #      key: PROJECT_ID
+            #- name: GCP_PROJECT_ID
+            #  valueFrom:
+            #    secretKeyRef:
+            #      name: ml-app-inference-secret
+            #      key: GCP_PROJECT_ID
+            #- name: GH_ISSUE_API_KEY
+            #  valueFrom:
+            #    secretKeyRef:
+            #      name: ml-app-inference-secret
+            #      key: GH_ISSUE_API_KEY
+            #- name: APP_ID
+            #  valueFrom:
+            #    secretKeyRef:
+            #      name: ml-app-inference-secret
+            #      key: APP_ID
+            #- name: APP_URL
+            #  valueFrom:
+            #    secretKeyRef:
+            #      name: ml-app-inference-secret
+            #      key: APP_URL
+            #- name: WEBHOOK_SECRET
+            #  valueFrom:
+            #    secretKeyRef:
+            #      name: ml-app-inference-secret
+            #      key: WEBHOOK_SECRET
+            #- name: PRIVATE_KEY
+            #  valueFrom:
+            #    secretKeyRef:
+            #      name: ml-app-inference-secret
+            #      key: PRIVATE_KEY
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/user-gcp-sa.json
+        restartPolicy: Always

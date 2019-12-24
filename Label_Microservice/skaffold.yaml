@@ -20,10 +20,8 @@ build:
   cluster:
     # pullSecret can be set to a local file from which the pull secret should be created.
     pullSecretName: user-gcp-sa
-    # TODO(jlewi): We should probably change this to the issue label bot dev namespace
-    namespace: kubeflow-issue-label-bot
+    # TODO(jlewi): This should be changed for each developer; or maybe we should create a reusable one?
+    namespace: jlewi-dev
 deploy:
-  kubectl:
-    manifests:
-    - deployment/deployments-test.yaml
-    - deployment/deployments.yaml
+  kustomize:
+    path: deployment/overlays/dev

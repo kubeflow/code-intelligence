@@ -1,0 +1,7 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+    name: worker
+spec:
+    # Use a single replica for development
+    replicas: 1
