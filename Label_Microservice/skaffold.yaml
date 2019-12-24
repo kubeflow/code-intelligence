@@ -22,6 +22,11 @@ build:
     pullSecretName: user-gcp-sa
     # TODO(jlewi): This should be changed for each developer; or maybe we should create a reusable one?
     namespace: jlewi-dev
+    resources:
+      requests:
+        cpu: 8
+        memory: 16Gi
+
 deploy:
   kustomize:
     path: deployment/overlays/dev
