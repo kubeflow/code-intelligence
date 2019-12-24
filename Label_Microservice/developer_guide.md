@@ -37,13 +37,21 @@ Setup a namespace for your development
 
 1. Set the namespace in `deployment/overlays/dev/kustomization.yaml`
 
+1. Start skaffold
+
+   ```
+   skaffold dev -v info --cleanup=false
+   ```
+
 1. Port-forward the local port to the remote service
 
    ```
    kubectl -n ${NAMESPACE} port-forward service/label-bot-worker 8080:80
    ```
 
-   * TODO(jlewi): skaffold supposedly will create local port-forwarding automatically; need to investigate that
+   * TODO(jlewi): skaffold supposedly will create local port-forwarding automatically; need to investigate that; looks
+     like it might require an additional flag to skaffold and require ports to be declared.
+
 
 1. Send a prediction request
 

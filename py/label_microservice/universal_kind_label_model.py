@@ -38,16 +38,16 @@ class UniversalKindLabelModel(models.IssueLabelModel):
 
     self.class_names = class_names
 
-  def predict_issue_labels(self, body:str, title:str):
+  def predict_issue_labels(self,  title:str, body:str):
     """
     Get probabilities for the each class.
 
     Parameters
     ----------
-    body: str
-       the issue body
     title: str
         the issue title
+    body: str
+       the issue body
 
     Returns
     ------
