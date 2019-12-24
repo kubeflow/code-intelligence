@@ -5,11 +5,29 @@ ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 # install python packages
 COPY Label_Microservice/deployment/requirements.worker.txt .
+COPY Label_Microservice/deployment/requirements.universal_model.txt .
 RUN pip --no-cache-dir install -r requirements.worker.txt
+RUN pip --no-cache-dir install -r requirements.universal_model.txt
 
 # Copy needed files for worker
 COPY py /py
 ENV PYTHONPATH=/py
+
+# Skaffold hack
+# Skaffold infers the files to watch for changes by parsing the dockerfile 
+# and looking for COPY statements. Skaffold v1.1.0 doesn't appear to detect
+# changes to directories so we add explicit COPY statements for the files that
+# we want to retrigger skaffold on when they are modified
+# TODO(jlewi): Need to try removing this. I think the problem might have been I was out of
+# notify resources on my local machine. When I switched skaffold to use --notify=polling
+# it started to detect changes.
+COPY py/label_microservice/app.py /py/label_microservice/app.py
+COPY py/label_microservice/mlp.py /py/label_microservice/mlp.py
+COPY py/label_microservice/models.py /py/label_microservice/models.py
+COPY py/label_microservice/repo_config.py /py/label_microservice/repo_config.py
+COPY py/label_microservice/repo_specific_model.py /py/label_microservice/repo_specific_model.py
+COPY py/label_microservice/universal_kind_label_model.py /py/label_microservice/universal_kind_label_model.py
+COPY py/label_microservice/worker.py /py/label_microservice/worker.py
 
 # Add helper files
 # TODO(jlewi): What is this for?

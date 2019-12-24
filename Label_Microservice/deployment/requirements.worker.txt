@@ -1,5 +1,5 @@
 # Requirements for the prediction worker
-dill==0.3.0
+dill==0.2.9
 # TODO(jlewi): What code is using fastai?
 fastai==1.0.55
 fastprogress==0.1.21

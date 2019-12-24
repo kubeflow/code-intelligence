@@ -1,0 +1,5 @@
+# Requirements for the universal model.
+# These requirements are largely copied from
+# https://github.com/machine-learning-apps/Issue-Label-Bot/blob/master/deployment/Dockerfile
+ h5py==2.9.0 
+ ktext==0.34 
