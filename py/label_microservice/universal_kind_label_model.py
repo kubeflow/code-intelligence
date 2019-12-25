@@ -39,8 +39,9 @@ class UniversalKindLabelModel(models.IssueLabelModel):
     # TODO(jlewi): Is this right? Do we want to get the default graph or
     # create a new graph? What happens when we are loading multiple graphs
     # at once into memory.
-    self._graph = tf.get_default_graph()
-    self.model = keras_models.load_model(model_path)
+    self._graph =  tf.Graph()
+    with self._graph.as_default():
+      self.model = keras_models.load_model(model_path)
 
     self.class_names = class_names
 
