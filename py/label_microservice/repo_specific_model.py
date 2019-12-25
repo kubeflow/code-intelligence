@@ -2,6 +2,7 @@
 
 import logging
 import numpy as np
+import os
 import requests
 import yaml
 
@@ -47,7 +48,12 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
     model = RepoSpecificLabelModel()
 
     model._embedding_api_endpoint = embedding_api_endpoint
-    model._embedding_api_key = os.environ['GH_ISSUE_API_KEY']
+    # TODO(jlewi): Why does the embedding service take a GitHub API key?
+    # It looks like the embedding service is using the API KEY as a form
+    # of authentication. That shouldn't really be required if we don' expose
+    # it publicly. If we want to expose it publicly we should use IAP
+    # to secure it.
+    model._embedding_api_key = os.environ.get('GH_ISSUE_API_KEY')
 
     model.config = repo_config.RepoConfig(repo_owner=repo_owner,
                                           repo_name=repo_name)

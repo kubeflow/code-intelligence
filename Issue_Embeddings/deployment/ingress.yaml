@@ -1,3 +1,5 @@
+# TODO(https://github.com/kubeflow/code-intelligence/issues/76): We shouldn't
+# expose the service behind an ingress
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:

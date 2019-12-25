@@ -1,4 +1,5 @@
 
+import tensorflow as tf
 from tensorflow.keras import models as keras_models
 from tensorflow.keras import utils as keras_utils
 
@@ -34,6 +35,11 @@ class UniversalKindLabelModel(models.IssueLabelModel):
         self.body_pp = dpickle.load(f)
 
     model_path = keras_utils.get_file(fname=model_filename, origin=model_url)
+
+    # TODO(jlewi): Is this right? Do we want to get the default graph or
+    # create a new graph? What happens when we are loading multiple graphs
+    # at once into memory.
+    self._graph = tf.get_default_graph()
     self.model = keras_models.load_model(model_path)
 
     self.class_names = class_names
@@ -65,7 +71,8 @@ class UniversalKindLabelModel(models.IssueLabelModel):
     vec_body = self.body_pp.transform([body])
     vec_title = self.title_pp.transform([title])
 
-    # get predictions
-    probs = self.model.predict(x=[vec_body, vec_title]).tolist()[0]
+    # make predictions with the model
+    with self._graph.as_default():
+      probs = self.model.predict(x=[vec_body, vec_title]).tolist()[0]
 
     return {k:v for k,v in zip(self.class_names, probs)}

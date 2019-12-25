@@ -5,6 +5,7 @@ import flask
 import logging
 import os
 
+from label_microservice import combined_model
 from label_microservice import repo_specific_model
 from label_microservice import universal_kind_label_model as universal_model
 
@@ -20,10 +21,18 @@ def load_models():
   logging.info("Loading the universal model")
   models["universal"] = universal_model.UniversalKindLabelModel()
 
-  for repo in ["kubeflow/kubeflow"]:
-    logging.info(f"Loading model for repo {repo}")
-    models["kubeflow/kubeflow"] = repo_specific_model.RepoSpecificLabelModel.from_repo(
-      "kubeflow", "kubeflow")
+  for org_and_repo in [("kubeflow", "kubeflow")]:
+    org = org_and_repo[0]
+    repo = org_and_repo[1]
+    logging.info(f"Loading model for repo {org}/{repo}")
+
+    repo_model = repo_specific_model.RepoSpecificLabelModel.from_repo(
+      org, repo)
+
+    models[f"{org}/{repo}"] = repo_model
+
+    models[f"{org}/{repo}_combined"] = combined_model.CombinedLabelModels(
+      models=[models["universal"], repo_model])
 
 @app.route("/health_check", methods=["GET"])
 def health_check():
@@ -60,7 +69,8 @@ def predict():
     errors.append(f"No model named {model_name}")
 
   if errors:
-    logging.error(f"Request had errors: {'\n'.join(errors)}")
+    error_message = "\n".join(errors)
+    logging.error(f"Request had errors: {error_message}")
 
     response = {
       "errors": errors

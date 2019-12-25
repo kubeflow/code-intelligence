@@ -1,5 +1,7 @@
 """A combined model combines multiple models."""
 
+import logging
+
 from label_microservice import models
 
 class CombinedLabelModels(models.IssueLabelModel):
@@ -8,7 +10,6 @@ class CombinedLabelModels(models.IssueLabelModel):
   def __init__(self, models=None):
     # A list of models to generate predictions
     self._models = models
-
 
   def predict_issue_labels(self, title:str , text:str):
     """Return a dictionary of label probabilities.
@@ -25,24 +26,28 @@ class CombinedLabelModels(models.IssueLabelModel):
     if not self._models:
       raise ValueError("Can't generate predictions; no models loaded")
 
-    for i, m in enumerate(self._models):
-
-    issue_embedding = self._get_issue_embedding(title, text)
-
-    # if not retrieve the embedding, ignore to predict it
-    if issue_embedding is None:
-      return [], None
-
-    # change embedding from 1d to 2d for prediction and extract the result
-    label_probabilities = self._mlp_predictor.predict_probabilities(
-      [issue_embedding])[0]
-
-    # check thresholds to get labels that need to be predicted
     predictions = {}
-    for i in range(len(label_probabilities)):
-      # if the threshold of any label is None, just ignore it
-      # because the label does not meet both of precision & recall thresholds
-      if self._label_thresholds[i] and label_probabilities[i] >= self._label_thresholds[i]:
-        predictions[self._label_names[i]] = label_probabilities[i]
+    for i, m in enumerate(self._models):
+      logging.info(f"Generating predictions with model {i}")
+
+      latest = m.predict_issue_labels(title, text)
+
+      predictions = self._combine_predictions(predictions, latest)
+
     return predictions
 
+
+  def _combine_predictions(self, left, right):
+    """Combine two sets of predictions by taking the max probability."""
+
+    results = {}
+    results.update(left)
+
+    for label, probability in right.items():
+      if not label in results:
+        results[label] = probability
+        continue
+
+      results[label] = max(left[label], right[label])
+
+    return results
