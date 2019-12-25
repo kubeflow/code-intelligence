@@ -21,18 +21,21 @@ def load_models():
   logging.info("Loading the universal model")
   models["universal"] = universal_model.UniversalKindLabelModel()
 
-  for org_and_repo in [("kubeflow", "kubeflow")]:
-    org = org_and_repo[0]
-    repo = org_and_repo[1]
-    logging.info(f"Loading model for repo {org}/{repo}")
+  # TODO(jlewi): The code below is commented out to see if loading the
+  # other models is causing problems with the tensors not being found
+  # when using the universal kind label model.
+  #for org_and_repo in [("kubeflow", "kubeflow")]:
+    #org = org_and_repo[0]
+    #repo = org_and_repo[1]
+    #logging.info(f"Loading model for repo {org}/{repo}")
 
-    repo_model = repo_specific_model.RepoSpecificLabelModel.from_repo(
-      org, repo)
+    #repo_model = repo_specific_model.RepoSpecificLabelModel.from_repo(
+      #org, repo)
 
-    models[f"{org}/{repo}"] = repo_model
+    #models[f"{org}/{repo}"] = repo_model
 
-    models[f"{org}/{repo}_combined"] = combined_model.CombinedLabelModels(
-      models=[models["universal"], repo_model])
+    #models[f"{org}/{repo}_combined"] = combined_model.CombinedLabelModels(
+      #models=[models["universal"], repo_model])
 
 @app.route("/health_check", methods=["GET"])
 def health_check():
