@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ml-github-issuefeat
-  namespace: issuefeat
   labels:
     app: ml-github-issuefeat
 spec:
@@ -17,7 +16,7 @@ spec:
     spec:
       containers:
       - name: ml-github-issuefeat
-        image: hamelsmu/issuefeatures-api-cpu
+        image: gcr.io/issue-label-bot-dev/issue-embedding
         command: ["python", "app.py"]
         readinessProbe:
           httpGet:
@@ -26,16 +25,13 @@ spec:
           initialDelaySeconds: 10
           periodSeconds: 3
         env:
-        - name: TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: ml-github-issuefeat-secret
-              key: TOKEN
-        - name: APP_ID
-          valueFrom:
-            secretKeyRef:
-              name: ml-github-issuefeat-secret
-              key: APP_ID
+        # TODO(jlewi): Can we get rid of this? I think this was the OAuth id but I'm not sure we need
+        # that if the app is no longer talking to GitHub.
+        #- name: APP_ID
+        #  valueFrom:
+        #    secretKeyRef:
+        #      name: ml-github-issuefeat-secret
+        #      key: APP_ID
         - name: FLASK_ENV
           value: production
         - name: PORT

@@ -1,0 +1,7 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: ml-github-issuefeat
+spec:
+    # Use a single replica for development
+    replicas: 1
