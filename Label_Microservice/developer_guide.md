@@ -76,4 +76,5 @@ Setup a namespace for your development
 
 * Can we use [Skaffold sync](https://skaffold.dev/docs/references/yaml/) to sync the python code into the container
   so we can skip rebuilds?
+  * Can we use Flask reloader to auto-reload the code when it changes?
 * Look into using [skaffold profiles](https://skaffold.dev/docs/environment/profiles/)
