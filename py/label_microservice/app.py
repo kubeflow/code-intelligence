@@ -101,7 +101,6 @@ if __name__ == "__main__":
                       datefmt='%Y-%m-%dT%H:%M:%S',
                       )
   # make sure things reload
-  load_models()
   app.jinja_env.auto_reload = True
   app.config['TEMPLATES_AUTO_RELOAD'] = True
   logging.info("Starting flask app")
