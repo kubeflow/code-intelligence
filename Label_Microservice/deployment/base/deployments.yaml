@@ -17,6 +17,10 @@ spec:
         - name: mycontainer
           image: gcr.io/issue-label-bot-dev/bot-worker
           command: ['python3', '-m', 'label_microservice.app']
+          resources:
+            requests:
+              memory: "4Gi"
+              cpu: "4"                      
           volumeMounts:
             - name: google-cloud-key
               mountPath: /var/secrets/google
