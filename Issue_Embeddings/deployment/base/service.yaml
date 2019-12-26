@@ -6,7 +6,8 @@ metadata:
     app: ml-github-issuefeat
 spec:
   ports:
-  - port: 3000
+  - port: 80
     protocol: TCP
+    targetPort: 80
   selector:
     app: ml-github-issuefeat

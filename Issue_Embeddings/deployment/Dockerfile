@@ -1,5 +1,9 @@
-
 # for https://cloud.docker.com/u/hamelsmu/repository/docker/hamelsmu/issuefeatures-api-cpu
+#
+# Building this image
+#
+# The context should be the root of the code-intelligence repository; this allows shared python code
+# (i.e. code in py/ to be pulled in.)
 FROM python:3.6-slim-stretch
 
 RUN apt-get update 
@@ -20,6 +24,7 @@ RUN pip install \
     beautifulsoup4==4.7.1 \
     bs4==0.0.1 \
     flask==1.0.2 \
+    flask-session==0.3.1 \
     ftfy==4.4.3 \
     gcsfs==0.2.1 \
     google-auth-oauthlib==0.3.0 \
@@ -39,18 +44,19 @@ RUN pip install \
     tqdm==4.32.2 \
     widgetsnbextension==3.4.2
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# TODO(jlewi): Do we need this 
+#COPY requirements.txt .
+#RUN pip install -r requirements.txt
 
+# TODO(jlewi): It looks like caching the model inside the docker container is unnecessary because the code will download it
+# if the path doesn't exist.
 # copy files for api server
-RUN apt install wget
-RUN wget https://storage.googleapis.com/issue_label_bot/model/lang_model/models_22zkdqlr/trained_model_22zkdqlr.pkl -O model.pkl
+#RUN apt install wget
+#RUN wget https://storage.googleapis.com/issue_label_bot/model/lang_model/models_22zkdqlr/trained_model_22zkdqlr.pkl -O model.pkl
 
-COPY flask_app flask_app/
-RUN cp model.pkl flask_app/
-WORKDIR flask_app/
+COPY Issue_Embeddings/flask_app flask_app/
+# TODO(jlewi): Model should be downloaded at runtime
 RUN mkdir -p model_files
 
 EXPOSE 3000 80 443
 CMD python app.py
-#CMD gunicorn -w 1 app:app -b 0.0.0.0:$PORT

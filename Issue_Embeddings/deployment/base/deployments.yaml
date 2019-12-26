@@ -18,10 +18,11 @@ spec:
       - name: ml-github-issuefeat
         image: gcr.io/issue-label-bot-dev/issue-embedding
         command: ["python", "app.py"]
+        workingDir: /flask_app
         readinessProbe:
           httpGet:
             path: /healthz
-            port: 3000
+            port: 80
           initialDelaySeconds: 10
           periodSeconds: 3
         env:
@@ -35,10 +36,8 @@ spec:
         - name: FLASK_ENV
           value: production
         - name: PORT
-          value: '3000'
+          value: '80'
         - name: authors
           value: 'f'
         ports:
-        - containerPort: 443
         - containerPort: 80
-        - containerPort: 3000

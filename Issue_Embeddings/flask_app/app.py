@@ -7,8 +7,7 @@ from flask import (abort, Flask, session, render_template,
 from flask_session import Session
 from urllib import request as request_url
 from pathlib import Path
-from inference import InferenceWrapper, pass_through
-from passlib.apps import custom_app_context as pwd_context
+from inference import InferenceWrapper
 
 app = Flask(__name__)
 

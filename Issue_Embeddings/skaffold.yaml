@@ -1,0 +1,32 @@
+# Reference: https://skaffold.dev/docs/references/yaml/
+apiVersion: skaffold/v2alpha1
+kind: Config
+metadata:
+  name: label-microservice
+build:
+  artifacts:
+  - image: gcr.io/issue-label-bot-dev/issue-embedding
+    # Set the context to the root directory. 
+    # All paths in the Dockerfile should be relative to this one.
+    context: ..
+    kaniko:
+      dockerfile: Issue_Embeddings/deployment/Dockerfile
+      buildContext:
+        gcsBucket: issue-label-bot-dev_skaffold-kaniko
+      env: 
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /secret/user-gcp-sa.json
+      cache: {}
+  cluster:
+    # pullSecret can be set to a local file from which the pull secret should be created.
+    pullSecretName: user-gcp-sa
+    # TODO(jlewi): This should be changed for each developer; or maybe we should create a reusable one?
+    namespace: jlewi-dev
+    resources:
+      requests:
+        cpu: 8
+        memory: 16Gi
+
+deploy:
+  kustomize:
+    path: deployment/overlays/dev

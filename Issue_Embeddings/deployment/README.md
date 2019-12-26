@@ -18,18 +18,7 @@ Deploying it
 1. Create the deployment
 
    ```
-   kubectl apply -f deployments.yaml  
+   kustomize build deployment/overlays/dev | kubectl apply -f -
    ```
 
-1. Create the secret
-
-   ```
-   gsutil cp gs://issue-embedding-secrets/.issuefeat-secret.yaml /tmp
-   kubectl -n issuefeat apply -f /tmp/.issuefeat-secret.yaml
-   ```
-
-1. Create the ingress
-
-   ```
-   kubectl -n issuefeat apply -f ingress.yaml
-   ```
+   * TODO(jlewi): We should probably define suitable prod and possibly staging environments as well
