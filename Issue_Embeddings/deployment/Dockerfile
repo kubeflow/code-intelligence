@@ -41,6 +41,7 @@ RUN pip install \
     pillow==6.0.0 \
     pycparser==2.19 \
     six==1.12.0 \
+    textacy==0.7.1 \
     tqdm==4.32.2 \
     widgetsnbextension==3.4.2
 

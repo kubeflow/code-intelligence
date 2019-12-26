@@ -11,12 +11,14 @@ build:
     context: ..
     # Automatically sync python files to the container. This should avoid
     # the need to rebuild and redeploy when the files change.
+    # TODO(https://github.com/GoogleContainerTools/skaffold/issues/3448): We use manual sync
+    # because inferred sync doesn't work
     sync:
         manual:
         - src: 'py/code_intelligence/*.py'
           dest: '/'
         - src: 'py/label_microservice/*.py'
-          dest: '/'        
+          dest: '/'
     kaniko:
       dockerfile: Label_Microservice/deployment/Dockerfile.worker
       buildContext:

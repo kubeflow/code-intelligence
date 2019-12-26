@@ -113,7 +113,6 @@ class IssueLabelPredictor:
     predictions = self.predict_labels_for_data(
       model_name, data.get("title"), data.get("body"))
 
-    print("DO NOT SUBMIT hack to retrigger load.")
     return predictions
 
   def predict(self, data):

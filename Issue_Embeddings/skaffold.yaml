@@ -2,7 +2,7 @@
 apiVersion: skaffold/v2alpha1
 kind: Config
 metadata:
-  name: label-microservice
+  name: issue-embedding-microservice
 build:
   artifacts:
   - image: gcr.io/issue-label-bot-dev/issue-embedding
@@ -13,13 +13,16 @@ build:
     # the need to rebuild and redeploy when the files change.
     # TODO(https://github.com/GoogleContainerTools/skaffold/issues/3448): We use manual sync
     # because inferred sync doesn't work
-    sync:
-        manual:
-        - src: 'py/code_intelligence/*.py'
-          dest: '/'
-        - src: 'Issue_Embeddings/flask_app/*.py'
-          strip: 'Issue_Embeddings'
-          dest: '/'
+    #
+    # TODO(jlewi): We can't use skaffolding file sync because we can't run the flask server
+    # in debug mode. As a result we wouldn't restart the flask app to pick up changes.
+    #sync:
+    #    manual:
+    #    - src: 'py/code_intelligence/*.py'
+    #      dest: '/'
+    #    - src: 'Issue_Embeddings/flask_app/*.py'
+    #      strip: 'Issue_Embeddings'
+    #      dest: '/'
     kaniko:
       dockerfile: Issue_Embeddings/deployment/Dockerfile
       buildContext:

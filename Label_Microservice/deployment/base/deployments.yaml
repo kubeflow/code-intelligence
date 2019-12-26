@@ -14,7 +14,7 @@ spec:
           secret:
             secretName: user-gcp-sa
         containers:
-        - name: mycontainer
+        - name: app
           image: gcr.io/issue-label-bot-dev/bot-worker
           command: ['python3', '-m', 'label_microservice.app']
           resources:
@@ -30,6 +30,8 @@ spec:
             # This should be the name of the in-cluster K8s service running issue embeddings
             - name: ISSUE_EMBEDDING_SERVICE
               value: "http://issue-embedding-server"
+            - name: PROJECT
+              value: issue-label-bot-dev
             #- name: PROJECT_ID
             #  valueFrom:
             #    secretKeyRef:

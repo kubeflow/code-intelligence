@@ -34,8 +34,6 @@ class Worker:
           subscription_name: pubsub subscription name, str
           embedding_api_endpoint: endpoint of embedding api microservice, str
         """
-        # TODO(chunhsiang): change the embedding microservice to be an internal DNS of k8s service.
-        #   see: https://v1-12.docs.kubernetes.io/docs/concepts/services-networking/dns-pod-service/#services
         self.project_id = project_id
         self.topic_name = topic_name
         self.subscription_name = subscription_name
@@ -49,6 +47,25 @@ class Worker:
 
         self._predictor = issue_label_predictor.IssueLabelPredictor()
 
+    @classmethod
+    def subscribe_from_env(cls):
+        """Build the worker from environment variables and subscribe"""
+        required_env = ["PROJECT", "ISSUE_EVENT_TOPIC",
+                        "ISSUE_EVENT_SUBSCRIPTION"]
+        missing = []
+        for e in required_env:
+            if not os.environ.get(e):
+                missing.append(e)
+
+        if missing:
+            raise ValueError(f"Missing required environment variables "
+                             f"{','.join(required)}")
+        worker = Worker(project_id=os.getenv("PROJECT"),
+                        topic_name=os.getenv("ISSUE_EVENT_TOPIC"),
+                        subscription_name=os.getenv("ISSUE_EVENT_SUBSCRIPTION"))
+        worker.subscribe()
+
+        return worker
     def check_subscription_name_exists(self):
         """
         Check if the subscription name exists in the project.

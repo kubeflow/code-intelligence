@@ -5,3 +5,21 @@ metadata:
 spec:
     # Use a single replica for development
     replicas: 1
+    template:          
+      spec:
+        containers:
+        - name: app
+          env:
+            - name: PROJECT
+              value: issue-label-bot-dev
+            - name: ISSUE_EVENT_TOPIC
+              value: "TEST_event_queue"
+            - name: ISSUE_EVENT_SUBSCRIPTION
+              value: "TEST_subscription_for_event_queue"
+            # Flask environment variables
+            # Enable debug mode to trigger automatic reloading when code changes
+            - name: FLASK_DEBUG
+              value: "true"
+            - name: FLASK_ENVIRONMENT
+              value: "development"
+

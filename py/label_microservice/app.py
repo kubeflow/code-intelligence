@@ -5,10 +5,8 @@ import flask
 import logging
 import os
 
-from label_microservice import combined_model
 from label_microservice import issue_label_predictor
-from label_microservice import repo_specific_model
-from label_microservice import universal_kind_label_model as universal_model
+from label_microservice import worker
 
 app = flask.Flask(__name__)
 
@@ -69,6 +67,13 @@ if __name__ == "__main__":
                               '|%(message)s|%(pathname)s|%(lineno)d|'),
                       datefmt='%Y-%m-%dT%H:%M:%S',
                       )
+
+  logging.info("Starting pubsub worker")
+  # TODO(jlewi): What is the right way to start the pubsub worker so that
+  # when running under skaffold we can use the flask reloader to trigger
+  # a reload and restart when the code changes
+  issue_worker = worker.Worker.subscribe_from_env()
+
   # make sure things reload
   app.jinja_env.auto_reload = True
   app.config['TEMPLATES_AUTO_RELOAD'] = True

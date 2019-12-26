@@ -1,5 +1,6 @@
 """Define a repo specific model."""
 
+import hashlib
 import logging
 import numpy as np
 import os
@@ -157,5 +158,10 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
                             'can not retrieve the embedding')
       return None
 
+    # For debugging print out hash of the content embeddings. This is to
+    # see if they are changing
+    m = hashlib.md5()
+    m.update(r.content)
+    logging.info(f"hash of embeddings {m.hexdigest()}")
     embeddings = np.frombuffer(r.content, dtype='<f4')[:1600]
     return embeddings
