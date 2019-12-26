@@ -1,9 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: ml-github-issuefeat
-  labels:
-    app: ml-github-issuefeat
+  name: server
 spec:
   ports:
   - port: 80

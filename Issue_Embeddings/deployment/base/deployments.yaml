@@ -1,18 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ml-github-issuefeat
-  labels:
-    app: ml-github-issuefeat
+  name: server
 spec:
   replicas: 9
   selector:
     matchLabels:
-      app: ml-github-issuefeat
+      app: issue-embedding-server
   template:
     metadata:
       labels:
-        app: ml-github-issuefeat
+        app: issue-embedding-server
     spec:
       containers:
       - name: ml-github-issuefeat
