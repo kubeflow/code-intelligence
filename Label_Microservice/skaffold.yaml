@@ -13,6 +13,8 @@ build:
     # the need to rebuild and redeploy when the files change.
     # TODO(https://github.com/GoogleContainerTools/skaffold/issues/3448): We use manual sync
     # because inferred sync doesn't work
+    #
+    # This only works if we autorestart the program on changes.
     sync:
         manual:
         - src: 'py/code_intelligence/*.py'

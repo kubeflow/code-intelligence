@@ -180,7 +180,9 @@ class Worker:
     # https://github.com/kubeflow/code-intelligence/pull/77? This function
     # is fetching the repo specific bot config and applying it. Need to think
     # about what we want to do there. e.g. do we want to use it for label
-    # aliases?
+    # aliases? This was originally only applied to the repo specific labels?
+    # Do we really need this? This feels redundant with the probability thresholds
+    # for the labels.
     def filter_specified_labels(self, repo_owner, repo_name, predictions):
         """
         Only select those labels which are specified by yaml file to be predicted.

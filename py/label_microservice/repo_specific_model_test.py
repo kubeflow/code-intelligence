@@ -1,3 +1,4 @@
+"""Unittest for repo_specific_model. """
 import logging
 from unittest import mock
 import pytest

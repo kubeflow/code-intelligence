@@ -9,6 +9,18 @@ spec:
       spec:
         containers:
         - name: app
+          # We use the wrapper program run_with_auto_restart.
+          # This will autorestart the program whenever we detect code changes.
+          # We use this to pick up changes to the code from skaffold.
+          command:
+            - python3
+            - -m 
+            - code_intelligence.run_with_auto_restart
+            - --directory=/py
+            - --
+            - python3
+            - -m
+            - label_microservice.app 
           env:
             - name: PROJECT
               value: issue-label-bot-dev
@@ -22,4 +34,3 @@ spec:
               value: "true"
             - name: FLASK_ENVIRONMENT
               value: "development"
-
