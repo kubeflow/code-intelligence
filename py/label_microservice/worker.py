@@ -165,11 +165,22 @@ class Worker:
         future = subscriber.subscribe(subscription_path,
                                       callback=callback,
                                       flow_control=flow_control)
+
+        # Calling future.result will block forever. future.cancel can be called
+        # to interrupt it.
+        # TODO(jlewi): It might be better to return the future. This would
+        # allow the caller to potentially cancel the process
         try:
+            logging.info("Wait forever or until pubsub future is cancelled")
             logging.info(future.result())
         except KeyboardInterrupt:
             logging.info(future.cancel())
 
+    # TODO(jlewi): Where should this function go after the refactor in
+    # https://github.com/kubeflow/code-intelligence/pull/77? This function
+    # is fetching the repo specific bot config and applying it. Need to think
+    # about what we want to do there. e.g. do we want to use it for label
+    # aliases?
     def filter_specified_labels(self, repo_owner, repo_name, predictions):
         """
         Only select those labels which are specified by yaml file to be predicted.

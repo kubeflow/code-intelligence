@@ -3,6 +3,8 @@
 import http
 import flask
 import logging
+import multiprocessing
+
 import os
 
 from label_microservice import issue_label_predictor
@@ -61,6 +63,17 @@ def predict():
   return (flask.jsonify(predictions), http.HTTPStatus.OK,
           {'ContentType':'application/json'})
 
+def start_pubsub_worker():
+  logging.info("Starting pubsub worker")
+  # TODO(jlewi): What is the right way to start the pubsub worker so that
+  # when running under skaffold we can use the flask reloader to trigger
+  # a reload and restart when the code changes
+  # Possible options
+  # 1. Use python to run a process that watches for file changes and then
+  #    restart the worker process
+  # 2. Add a flask handler to restart it
+  worker.Worker.subscribe_from_env()
+
 if __name__ == "__main__":
   logging.basicConfig(level=logging.INFO,
                       format=('%(levelname)s|%(asctime)s'
@@ -68,11 +81,9 @@ if __name__ == "__main__":
                       datefmt='%Y-%m-%dT%H:%M:%S',
                       )
 
-  logging.info("Starting pubsub worker")
-  # TODO(jlewi): What is the right way to start the pubsub worker so that
-  # when running under skaffold we can use the flask reloader to trigger
-  # a reload and restart when the code changes
-  issue_worker = worker.Worker.subscribe_from_env()
+  # Run the pubsub worker in its own process
+  p = multiprocessing.Process(target=start_pubsub_worker)
+  p.start()
 
   # make sure things reload
   app.jinja_env.auto_reload = True
@@ -86,3 +97,5 @@ if __name__ == "__main__":
   # https://github.com/machine-learning-apps/Issue-Label-Bot/blob/master/flask_app/app.py#L415
   # Need to investigate to figure out what's different
   app.run(threaded=False, debug=True, host='0.0.0.0', port=os.getenv('PORT'))
+
+  p.join()
