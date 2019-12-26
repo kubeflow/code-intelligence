@@ -6,31 +6,28 @@ import logging
 import os
 
 from label_microservice import combined_model
+from label_microservice import issue_label_predictor
 from label_microservice import repo_specific_model
 from label_microservice import universal_kind_label_model as universal_model
 
 app = flask.Flask(__name__)
 
 # Keep track of all the models that can be used
-app.config["models"] = {}
+app.config["predictor"] = None
 
-def load_models():
-  # TODO(jlewi): How can we initialize the model once for the app and reuse it
-  logging.info("Loading the universal model")
-  app.config["models"]["universal"] = universal_model.UniversalKindLabelModel()
+# TODO(jlewi): get_predictor should only be called in the handler for a
+# prediction request; trying to preinitialize the predictor before run is
+# called ended up hitting what looked like threading issues
+# because the requested TF ops weren't found in the graph. But Loading
+# the models inside the first request appears to work.
+# I need to try to find some way to preload all the models before the first
+# request is recieved
+def get_predictor():
+  if not app.config["predictor"]:
+    logging.info("Creating label predictor")
+    app.config["predictor"] = issue_label_predictor.IssueLabelPredictor()
 
-  for org_and_repo in [("kubeflow", "kubeflow")]:
-    org = org_and_repo[0]
-    repo = org_and_repo[1]
-    logging.info(f"Loading model for repo {org}/{repo}")
-
-    repo_model = repo_specific_model.RepoSpecificLabelModel.from_repo(
-      org, repo)
-
-    app.config["models"][f"{org}/{repo}"] = repo_model
-
-    app.config["models"][f"{org}/{repo}_combined"] = combined_model.CombinedLabelModels(
-      models=[app.config["models"]["universal"], repo_model])
+  return app.config["predictor"]
 
 @app.route("/health_check", methods=["GET"])
 def health_check():
@@ -41,8 +38,7 @@ def health_check():
 def predict():
   """Predict labels given issuse title and text.
 
-  The request payload should contain a json dictionary with two keys "title"
-  and "text" containing the title and text for the issue.
+  The request payload should look like one of the following.
 
   The field model can be used to select the model.
 
@@ -50,46 +46,19 @@ def predict():
     json response containing a dictionary mapping labels to predicted
     probabilities.
   """
+  print("DO NOT SUBMIT this is a test for the file sync and reloader")
   content = flask.request.json
 
-  model_name = content.get("model", "")
-  title = content.get("title", "")
-  text = content.get("text", "")
+  predictor = get_predictor()
 
-  errors = []
-
-  if not app.config["models"]:
-    # TODO(jlewi): This is a hack because when I loaded the models before
-    # calling app.run I ended up hitting what looked like threading issues
-    # because the requested TF ops weren't found in the graph. But Loading
-    # the models inside the first request appears to work.
-    logging.info("Loading models")
-    load_models()
-
-
-  if not model_name:
-      known_models = ",".join(app.config["models"].keys())
-      errors.append("Request is missing field model containing the name of the "
-                    "model to use to generate predictions. Allowed values: "
-                    f"{known_models}")
-
-  if model_name and not model_name in app.config["models"]:
-    errors.append(f"No model named {model_name}")
-
-  if errors:
-    error_message = "\n".join(errors)
-    logging.error(f"Request had errors: {error_message}")
-
+  try:
+    predictions = predictor.predict(content)
+  except ValueError as e:
     response = {
-      "errors": errors
+      "errors": [f"{e}"]
     }
     return (flask.jsonify(response), http.HTTPStatus.BAD_REQUEST.value,
             {'ContentType':'application/json'})
-
-  model = app.config["models"][model_name]
-  logging.info(f"Generating predictions for title={title} text={text}")
-  predictions = model.predict_issue_labels(title, text)
-  logging.info(f"Predictions for title={title} text={text}\n{predictions}")
 
   return (flask.jsonify(predictions), http.HTTPStatus.OK,
           {'ContentType':'application/json'})

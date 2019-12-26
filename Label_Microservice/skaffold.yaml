@@ -12,8 +12,11 @@ build:
     # Automatically sync python files to the container. This should avoid
     # the need to rebuild and redeploy when the files change.
     sync:
-        infer:        
-        - '**/*.py'
+        manual:
+        - src: 'py/code_intelligence/*.py'
+          dest: '/'
+        - src: 'py/label_microservice/*.py'
+          dest: '/'        
     kaniko:
       dockerfile: Label_Microservice/deployment/Dockerfile.worker
       buildContext:

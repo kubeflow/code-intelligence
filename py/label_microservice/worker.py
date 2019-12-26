@@ -8,8 +8,6 @@ from label_microservice.repo_config import RepoConfig
 from code_intelligence.github_util import init as github_init
 from code_intelligence.github_util import get_issue_handle
 from code_intelligence.github_util import get_yaml
-from code_intelligence.embeddings import get_issue_text
-from code_intelligence.gcs_util import download_file_from_gcs
 from code_intelligence.pubsub_util import check_subscription_name_exists
 from code_intelligence.pubsub_util import create_subscription_if_not_exists
 
@@ -102,13 +100,9 @@ class Worker:
             repo_owner = message.attributes['repo_owner']
             repo_name = message.attributes['repo_name']
             issue_num = message.attributes['issue_num']
-            logging.info(f'Receive issue #{issue_num} from {repo_owner}/{repo_name}')
 
             try:
-                # predict labels
-                self.load_yaml(repo_owner, repo_name)
-                self.download_model_from_gcs()
-                predictions, issue_embedding = self.predict_labels(repo_owner, repo_name, issue_num)
+                label_predictor.
                 self.add_labels_to_issue(installation_id, repo_owner, repo_name,
                                          issue_num, predictions)
 

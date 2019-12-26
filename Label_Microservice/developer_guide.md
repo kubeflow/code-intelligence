@@ -43,6 +43,10 @@ Setup a namespace for your development
    skaffold dev -v info --cleanup=false
    ```
 
+1. Follow the developer guide for issue embedding microservice to start the dev version of the issue embedding service
+
+   * That service should only be needed if you want to use repo specific models as opposed to the universal model
+
 1. Port-forward the local port to the remote service
 
    ```
