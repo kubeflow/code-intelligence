@@ -9,6 +9,17 @@ build:
     # Set the context to the root directory. 
     # All paths in the Dockerfile should be relative to this one.
     context: ..
+    # Automatically sync python files to the container. This should avoid
+    # the need to rebuild and redeploy when the files change.
+    # TODO(https://github.com/GoogleContainerTools/skaffold/issues/3448): We use manual sync
+    # because inferred sync doesn't work
+    sync:
+        manual:
+        - src: 'py/code_intelligence/*.py'
+          dest: '/'
+        - src: 'Issue_Embeddings/flask_app/*.py'
+          strip: 'Issue_Embeddings'
+          dest: '/'
     kaniko:
       dockerfile: Issue_Embeddings/deployment/Dockerfile
       buildContext:

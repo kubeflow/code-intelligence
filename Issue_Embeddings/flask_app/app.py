@@ -1,6 +1,6 @@
+import hashlib
 import os
 import logging
-import hmac
 from flask import (abort, Flask, session, render_template,
                    session, redirect, url_for, request,
                    flash, jsonify)
@@ -59,13 +59,23 @@ def text():
     # pre-process data
     title = request.json['title']
     body = request.json['body']
-
+    print("DO NOT SUBMIT")
+    # TODO(jlewi): logging.warning and logging.info didn't seem to be working
+    logging.warning(f"Recieved title={title} body={body}")
+    LOG.warning(f"Recieved title={title} body={body}")
     data = app.inference_wrapper.process_dict({'title':title, 'body':body})
     LOG.warning(f'prediction requested for {str(data)}')
 
     # make prediction: you can only return strings with api
     # decode with np.frombuffer(request.content, dtype='<f4')
-    return app.inference_wrapper.get_pooled_features(data['text']).detach().numpy().tostring()
+    embeddings_str = app.inference_wrapper.get_pooled_features(data['text']).detach().numpy().tostring()
+
+    # For debugging print out hash of the content embeddings. This is to
+    # see if they are changing
+    m = hashlib.md5()
+    m.update(embeddings_str)
+    logging.info(f"hash of embeddings {m.hexdigest()}")
+    return embeddings_str
 
 @app.route("/all_issues/<string:owner>/<string:repo>", methods=["POST"])
 def fetch_issues(owner, repo):
@@ -94,7 +104,27 @@ def is_public(owner, repo):
         return False
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO,
+                        format=('%(levelname)s|%(asctime)s'
+                                '|%(message)s|%(pathname)s|%(lineno)d|'),
+                        datefmt='%Y-%m-%dT%H:%M:%S',
+                        )
     init_language_model()
 
-    # you cannot use debugging or multiple threads for model to work!
-    app.run(debug=False, host='0.0.0.0', port=os.getenv('PORT'), threaded=False)
+    FLASK_DEBUG = os.getenv("FLASK_DEBUG", "false").lower()
+
+    # Need to convert it to boolean
+    if FLASK_DEBUG in ["true", "t"]:
+        FLASK_DEBUG = True
+    else:
+        FLASK_DEBUG = False
+
+    logging.info(f"FLASK_DEBUG={FLASK_DEBUG}")
+
+    if FLASK_DEBUG:
+        raise ValueError(f"Flask debug mode currently doesn't work with the "
+                         f"embedding model. See "
+                         f"https://github.com/kubeflow/code-intelligence/pull/77#issuecomment-569105812")
+
+    app.run(debug=FLASK_DEBUG, host='0.0.0.0',
+            port=os.getenv('PORT'), threaded=False)

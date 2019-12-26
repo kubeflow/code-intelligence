@@ -17,8 +17,10 @@ spec:
             - name: ISSUE_EVENT_SUBSCRIPTION
               value: "TEST_subscription_for_event_queue"
             # Flask environment variables
-            # Enable debug mode to trigger automatic reloading when code changes
+            # TODO: Unfortunately it looks like if we enable debugging we hit the following error
+            # https://stackoverflow.com/questions/53522052/flask-app-valueerror-signal-only-works-in-main-thread
+            # as a result we can't rely on flask auto-reloading to pick up file sync changes from skaffold
             - name: FLASK_DEBUG
-              value: "true"
-            - name: FLASK_ENVIRONMENT
-              value: "development"
+              value: "false"
+            - name: FLASK_ENV
+              value: "production"
