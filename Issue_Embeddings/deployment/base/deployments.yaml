@@ -13,7 +13,7 @@ spec:
         app: issue-embedding-server
     spec:
       containers:
-      - name: ml-github-issuefeat
+      - name: app
         image: gcr.io/issue-label-bot-dev/issue-embedding
         command: ["python", "app.py"]
         workingDir: /flask_app
