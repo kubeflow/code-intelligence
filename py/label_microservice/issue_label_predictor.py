@@ -1,4 +1,5 @@
 import logging
+import os
 
 from code_intelligence import embeddings
 from label_microservice import combined_model
@@ -45,7 +46,8 @@ class IssueLabelPredictor:
       logging.info(f"Loading model for repo {org}/{repo}")
 
       repo_model = repo_specific_model.RepoSpecificLabelModel.from_repo(
-              org, repo)
+              org, repo,
+              embedding_api_endpoint=os.environ.get("ISSUE_EMBEDDING_SERVICE"))
 
       self._models[f"{org}/{repo}"] = repo_model
 
@@ -68,7 +70,7 @@ class IssueLabelPredictor:
       raise ValueError(f"No model named {model_name}")
 
     model = self._models[model_name]
-    logging.info(f"Generating predictions for title={title} text={text}")
+    logging.info(f"Generating predictions for title={title} text={body}")
     predictions = model.predict_issue_labels(title, body)
 
     return predictions
@@ -88,7 +90,6 @@ class IssueLabelPredictor:
     Returns
      dict: str -> float; dictionary mapping labels to their probability
     """
-
     if not model_name:
       repo_model = _combined_model_name(org, repo)
 
@@ -109,9 +110,10 @@ class IssueLabelPredictor:
     if not data.get("body"):
       logging.warning(f"Got empty title for {org}/{repo}#{issue_number}")
 
-    model = self._models[model_name]
-    predictions = model.predict_labels(data.get("title"), data.get("body"))
+    predictions = self.predict_labels_for_data(
+      model_name, data.get("title"), data.get("body"))
 
+    print("DO NOT SUBMIT hack to retrigger load.")
     return predictions
 
   def predict(self, data):
@@ -139,7 +141,6 @@ class IssueLabelPredictor:
           ...
         }
     """
-
     text_keys = ["title", "text", "model_name"]
     issue_keys = ["repo_owner", "repo_name", "issue_num"]
     if _dict_has_keys(data, text_keys):

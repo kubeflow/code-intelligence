@@ -7,16 +7,12 @@ import requests
 import yaml
 
 from code_intelligence import gcs_util
-from passlib.apps import custom_app_context as pwd_context
 from label_microservice import mlp
 from label_microservice import models
 from label_microservice import repo_config
 
 # The default endpoint for the microservice to compute embeddings
-#
-# TODO(chunhsiang): change the embedding microservice to be an internal DNS of k8s service.
-#   see: https://v1-12.docs.kubernetes.io/docs/concepts/services-networking/dns-pod-service/#services
-DEFAULT_EMBEDDING_API_ENDPOINT = "https://embeddings.gh-issue-labeler.com/text"
+DEFAULT_EMBEDDING_API_ENDPOINT = "http://issue-embedding-server"
 
 class RepoSpecificLabelModel(models.IssueLabelModel):
   """A repo specific model using a multi-layer perceptron."""
@@ -27,13 +23,14 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
     self._embedding_api_endpoint = None
     self._embedding_api_key = None
 
-    self._label_columns = None
+    # A list of labels. The order of the labels corresponds to the order
+    # of the probabilities returned by the model
     self._label_names = None
+    # Dictionary mapping label names to the probability thresholds.
     self._label_thresholds = None
 
   @classmethod
-  def from_repo(cls, repo_owner, repo_name,
-                embedding_api_endpoint=DEFAULT_EMBEDDING_API_ENDPOINT):
+  def from_repo(cls, repo_owner, repo_name, embedding_api_endpoint=None):
     """Construct a model given the repo owner and name.
 
     Load config from the YAML of the specific repo_owner/repo_name.
@@ -48,12 +45,6 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
     model = RepoSpecificLabelModel()
 
     model._embedding_api_endpoint = embedding_api_endpoint
-    # TODO(jlewi): Why does the embedding service take a GitHub API key?
-    # It looks like the embedding service is using the API KEY as a form
-    # of authentication. That shouldn't really be required if we don' expose
-    # it publicly. If we want to expose it publicly we should use IAP
-    # to secure it.
-    model._embedding_api_key = os.environ.get('GH_ISSUE_API_KEY')
 
     model.config = repo_config.RepoConfig(repo_owner=repo_owner,
                                           repo_name=repo_name)
@@ -75,11 +66,24 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
     # Expect a YAML file with a dictionary
     # {'labels': list, 'probability_thresholds': {label_index: threshold}}
     with open(model.config.labels_local_path, 'r') as f:
-      model._label_columns = yaml.safe_load(f)
+      label_columns = yaml.safe_load(f)
 
-    model._label_names = model._label_columns['labels']
-    model._label_thresholds = model._label_columns['probability_thresholds']
+    model._label_names = label_columns["labels"]
+    model._label_thresholds = {}
 
+    for index, threshold in label_columns["probability_thresholds"].items():
+      model._label_thresholds[model._label_names[index]] = threshold
+
+    logging.info(f"Loaded model gs://{model.config.model_bucket_name}/"
+                 f"{model.config.model_gcs_path}")
+    logging.info(f"Loaded model config gs://{model.config.model_bucket_name}/"
+                 f"{model.config.labels_gcs_path}")
+    logging.info(f"Model label thresholds {model._label_thresholds}")
+    if not embedding_api_endpoint:
+      embedding_api_endpoint = DEFAULT_EMBEDDING_API_ENDPOINT
+
+    model._embedding_api_endpoint = embedding_api_endpoint
+    logging.info(f"Issue embedding service set to {model._embedding_api_endpoint}")
     return model
 
   def predict_issue_labels(self, title:str , text:str):
@@ -98,19 +102,36 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
 
     # if not retrieve the embedding, ignore to predict it
     if issue_embedding is None:
-      return [], None
+      logging.error("No embeddings returned for issue")
+      return {}
 
     # change embedding from 1d to 2d for prediction and extract the result
     label_probabilities = self._mlp_predictor.predict_probabilities(
       [issue_embedding])[0]
 
     # check thresholds to get labels that need to be predicted
-    predictions = {}
-    for i in range(len(label_probabilities)):
+    predictions = dict(zip(self._label_names, label_probabilities))
+
+    # TODO(https://github.com/kubeflow/code-intelligence/issues/79):
+    # We should use some sort of context to pass along information
+    # about the issue so we can log what issue these predictions pertain
+    # to.
+    logging.info(f"Unfiltered predictions: {predictions}")
+
+    labels_to_remove = []
+    for label, probability in predictions.items():
       # if the threshold of any label is None, just ignore it
       # because the label does not meet both of precision & recall thresholds
-      if self._label_thresholds[i] and label_probabilities[i] >= self._label_thresholds[i]:
-        predictions[self._label_names[i]] = label_probabilities[i]
+      if not self._label_thresholds[label]:
+        labels_to_remove.append(label)
+        continue
+
+      if probability < self._label_thresholds[label]:
+        labels_to_remove.append(label)
+
+    for l in labels_to_remove:
+      del predictions[l]
+    logging.info(f"Labels below precision and recall {labels_to_remove}")
     return predictions
 
   def _get_issue_embedding(self, title, text):
@@ -126,14 +147,11 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
     numpy.ndarray
         shape: (1600,)
     """
-
     data = {'title': title, 'body': text}
 
     # sending post request and saving response as response object
-    r = requests.post(url=self._embedding_api_endpoint,
-                          headers={'Token': pwd_context.hash(
-                            self._embedding_api_key)},
-                          json=data)
+    url = self._embedding_api_endpoint + "/text"
+    r = requests.post(url=url, json=data)
     if r.status_code != 200:
       logging.warning(f'Status code is {r.status_code} not 200: '
                             'can not retrieve the embedding')

@@ -10,6 +10,7 @@ from code_intelligence.github_util import get_issue_handle
 from code_intelligence.github_util import get_yaml
 from code_intelligence.pubsub_util import check_subscription_name_exists
 from code_intelligence.pubsub_util import create_subscription_if_not_exists
+from label_microservice import issue_label_predictor
 
 class Worker:
     """
@@ -45,6 +46,8 @@ class Worker:
         github_init()
         # init pubsub subscription
         self.create_subscription_if_not_exists()
+
+        self._predictor = issue_label_predictor.IssueLabelPredictor()
 
     def check_subscription_name_exists(self):
         """
@@ -96,17 +99,31 @@ class Worker:
                       }
                   }
             """
+            # The code that publishes the message is:
+            # https://github.com/machine-learning-apps/Issue-Label-Bot/blob/26d8fb65be3b39de244c4be9e32b2838111dac10/flask_app/forward_utils.py#L57
+            # The front end does have access to the title and body
+            # but its not being sent right now.
             installation_id = message.attributes['installation_id']
             repo_owner = message.attributes['repo_owner']
             repo_name = message.attributes['repo_name']
             issue_num = message.attributes['issue_num']
 
+            data = {
+                "repo_owner": repo_owner,
+                "repo_name": repo_name,
+                "issue_num": issue_num,
+            }
             try:
-                label_predictor.
-                self.add_labels_to_issue(installation_id, repo_owner, repo_name,
-                                         issue_num, predictions)
+                predictions = self._predictor.predict(data)
+
+                logging.warning("Need to add labels to issue")
+                #self.add_labels_to_issue(installation_id, repo_owner, repo_name,
+                                         #issue_num, predictions)
 
                 # log the prediction, which will be used to track the performance
+                # TODO(https://github.com/kubeflow/code-intelligence/issues/79)
+                # Ensure we capture the information needed to measure performance
+                # in stackdriver
                 log_dict = {
                     'repo_owner': repo_owner,
                     'repo_name': repo_name,

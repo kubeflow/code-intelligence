@@ -27,6 +27,9 @@ spec:
           env:
             - name: PORT
               value: "80"
+            # This should be the name of the in-cluster K8s service running issue embeddings
+            - name: ISSUE_EMBEDDING_SERVICE
+              value: "http://issue-embedding-server"
             #- name: PROJECT_ID
             #  valueFrom:
             #    secretKeyRef:
