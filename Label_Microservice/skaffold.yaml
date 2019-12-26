@@ -9,6 +9,11 @@ build:
     # Set the context to the root directory. 
     # All paths in the Dockerfile should be relative to this one.
     context: ..
+    # Automatically sync python files to the container. This should avoid
+    # the need to rebuild and redeploy when the files change.
+    sync:
+        infer:        
+        - '**/*.py'
     kaniko:
       dockerfile: Label_Microservice/deployment/Dockerfile.worker
       buildContext:
