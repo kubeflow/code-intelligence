@@ -46,7 +46,7 @@ Setup a namespace for your development
 1. Port-forward the local port to the remote service
 
    ```
-   kubectl -n ${NAMESPACE} port-forward service/issue-embedding-ml-github-issuefeat 8080:80
+   kubectl -n ${NAMESPACE} port-forward service/issue-embedding-server 8080:80
    ```
 
    * TODO(jlewi): skaffold supposedly will create local port-forwarding automatically; need to investigate that; looks
@@ -61,7 +61,7 @@ Setup a namespace for your development
 
    * TODO(jlewi): Output is binary so how should we decode it?
 
-   
+
 ## Unresolved Issues
 
 * skaffold continuous mode (`skaffold dev` ) doesn't appear to detect changes in the python files and retrigger the build and deployment
