@@ -47,26 +47,28 @@ spec:
             #    secretKeyRef:
             #      name: ml-app-inference-secret
             #      key: GH_ISSUE_API_KEY
-            #- name: APP_ID
-            #  valueFrom:
-            #    secretKeyRef:
-            #      name: ml-app-inference-secret
-            #      key: APP_ID
-            #- name: APP_URL
-            #  valueFrom:
-            #    secretKeyRef:
-            #      name: ml-app-inference-secret
-            #      key: APP_URL
+            # APP_ID and APP_URL identify the GitHub OAuth app
+            - name: APP_ID
+              valueFrom:
+               secretKeyRef:
+                 name: ml-app-inference-secret
+                 key: APP_ID
+            - name: APP_URL
+              valueFrom:
+               secretKeyRef:
+                 name: ml-app-inference-secret
+                 key: APP_URL
+            # PRIVATE_KEY is the key for the GitHub OAuth App
+            - name: PRIVATE_KEY
+              valueFrom:
+               secretKeyRef:
+                 name: ml-app-inference-secret
+                 key: PRIVATE_KEY
             #- name: WEBHOOK_SECRET
             #  valueFrom:
             #    secretKeyRef:
             #      name: ml-app-inference-secret
-            #      key: WEBHOOK_SECRET
-            #- name: PRIVATE_KEY
-            #  valueFrom:
-            #    secretKeyRef:
-            #      name: ml-app-inference-secret
-            #      key: PRIVATE_KEY
+            #      key: WEBHOOK_SECRET            
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: /var/secrets/google/user-gcp-sa.json
         restartPolicy: Always

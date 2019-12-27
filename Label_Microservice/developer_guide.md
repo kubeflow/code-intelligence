@@ -35,6 +35,14 @@ Setup a namespace for your development
    kubectl create -n ${NAMESPACE} secret generic ${NAME} --from-literal="${NAME}.json=${SECRET}"
    ```
 
+1. Create the secret
+
+   ```
+    gsutil cp gs://github-probots_secrets/ml-app-inference-secret-test.yaml ~/secrets/
+    <edit ml-app-inference-secret-test.yaml; change the name to drop the "-test" suffix>
+    kubectl -n ${NAMESPACE} create -f ~/secrets/ml-app-inference-secret-test.yaml
+   ```
+
 1. Set the namespace in `deployment/overlays/dev/kustomization.yaml`
 
 1. Start skaffold
