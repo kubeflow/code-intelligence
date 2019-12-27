@@ -121,7 +121,7 @@ class InferenceWrapper:
         try:
             text = 'xxxfldtitle '+ cls.parse(title) + ' xxxfldbody ' + cls.parse(body)
         except Exception as e:
-            logging.info(e)
+            logging.error(f"Exception occurred in process_dict {e}")
             return {'text': 'xxxUnk'}
         return {'text': text}
 

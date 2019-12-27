@@ -1,8 +1,0 @@
-apiVersion: networking.gke.io/v1beta1
-kind: ManagedCertificate
-metadata:
-  name: gh-issue-labeler-certificate-3
-  namespace: issuefeat
-spec:
-  domains:
-    - embeddings.gh-issue-labeler.com

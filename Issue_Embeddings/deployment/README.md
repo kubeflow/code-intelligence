@@ -18,18 +18,14 @@ Deploying it
 1. Create the deployment
 
    ```
-   kubectl apply -f deployments.yaml  
+   kustomize build deployment/overlays/dev | kubectl apply -f -
    ```
 
-1. Create the secret
+   * TODO(jlewi): We should probably define suitable prod and possibly staging environments as well
 
-   ```
-   gsutil cp gs://issue-embedding-secrets/.issuefeat-secret.yaml /tmp
-   kubectl -n issuefeat apply -f /tmp/.issuefeat-secret.yaml
-   ```
+1. You can also follow the [developer_guide.md](../developer_guide.md) to deploy it using skaffold
 
-1. Create the ingress
+1. TODO(jlewi): Add instructions for how to build and update the images; one way to do this would be to use
+   `skaffold build` followed by `kustomize edit`
 
-   ```
-   kubectl -n issuefeat apply -f ingress.yaml
-   ```
+   * We may need/want to use skaffold profiles to define GCR buckets corresponding to dev, staging, and prod

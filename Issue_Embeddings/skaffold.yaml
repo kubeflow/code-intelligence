@@ -1,0 +1,47 @@
+# Reference: https://skaffold.dev/docs/references/yaml/
+apiVersion: skaffold/v2alpha1
+kind: Config
+metadata:
+  name: issue-embedding-microservice
+build:
+  artifacts:
+  - image: gcr.io/issue-label-bot-dev/issue-embedding
+    # Set the context to the root directory. 
+    # All paths in the Dockerfile should be relative to this one.
+    context: ..
+    # Automatically sync python files to the container. This should avoid
+    # the need to rebuild and redeploy when the files change.
+    # TODO(https://github.com/GoogleContainerTools/skaffold/issues/3448): We use manual sync
+    # because inferred sync doesn't work
+    #
+    # TODO(https://github.com/kubeflow/code-intelligence/issues/78): To use skaffold filesync
+    # I think we will need to use a custome program to autorestart the server on file changes
+    # because we can't run flask in debug mode and rely on its auto-loader.
+    #sync:
+    #    manual:
+    #    - src: 'py/code_intelligence/*.py'
+    #      dest: '/'
+    #    - src: 'Issue_Embeddings/flask_app/*.py'
+    #      strip: 'Issue_Embeddings'
+    #      dest: '/'
+    kaniko:
+      dockerfile: Issue_Embeddings/deployment/Dockerfile
+      buildContext:
+        gcsBucket: issue-label-bot-dev_skaffold-kaniko
+      env: 
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /secret/user-gcp-sa.json
+      cache: {}
+  cluster:
+    # pullSecret can be set to a local file from which the pull secret should be created.
+    pullSecretName: user-gcp-sa
+    # TODO(jlewi): This should be changed for each developer; or maybe we should create a reusable one?
+    namespace: jlewi-dev
+    resources:
+      requests:
+        cpu: 8
+        memory: 16Gi
+
+deploy:
+  kustomize:
+    path: deployment/overlays/dev

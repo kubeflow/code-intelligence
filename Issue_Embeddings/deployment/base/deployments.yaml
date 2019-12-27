@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server
+spec:
+  replicas: 9
+  selector:
+    matchLabels:
+      app: issue-embedding-server
+  template:
+    metadata:
+      labels:
+        app: issue-embedding-server
+    spec:
+      containers:
+      - name: app
+        image: gcr.io/issue-label-bot-dev/issue-embedding
+        command: ["python", "app.py"]
+        workingDir: /flask_app
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 3
+        env:
+        - name: FLASK_ENV
+          value: production
+        - name: PORT
+          value: '80'
+        - name: authors
+          value: 'f'
+        ports:
+        - containerPort: 80

@@ -14,6 +14,11 @@ def init():
     with open('private-key.pem', 'wb') as f:
         f.write(str.encode(pem_string))
 
+# TODO(jlewi): init is taking the PRIVATE_KEY from an environment variable
+# and then writing it to a file. It would probably be better to follow
+# the pattern of GOOGLE_APPLICATION_CREDENTIALS; i.e. mount the K8s secret
+# to a volume and then use an environment variable to specify the path of
+# the key file.
 def get_app():
     "grab a fresh instance of the app handle."
     app_id = os.getenv('APP_ID')
