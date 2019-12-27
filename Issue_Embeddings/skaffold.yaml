@@ -14,8 +14,9 @@ build:
     # TODO(https://github.com/GoogleContainerTools/skaffold/issues/3448): We use manual sync
     # because inferred sync doesn't work
     #
-    # TODO(jlewi): We can't use skaffolding file sync because we can't run the flask server
-    # in debug mode. As a result we wouldn't restart the flask app to pick up changes.
+    # TODO(https://github.com/kubeflow/code-intelligence/issues/78): To use skaffold filesync
+    # I think we will need to use a custome program to autorestart the server on file changes
+    # because we can't run flask in debug mode and rely on its auto-loader.
     #sync:
     #    manual:
     #    - src: 'py/code_intelligence/*.py'

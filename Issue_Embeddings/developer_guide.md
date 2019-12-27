@@ -10,7 +10,6 @@ Skaffold is configured to build the artifacts on your cluster using kaniko
 * **cluster**: issue-label-bot-dev-kf 
 * **zone**: us-east1-d
 
-
 Setup a namespace for your development
 
 1. Create the namespace
@@ -62,11 +61,6 @@ Setup a namespace for your development
    * TODO(jlewi): Output is binary so how should we decode it?
 
 
-## Unresolved Issues
-
-* skaffold continuous mode (`skaffold dev` ) doesn't appear to detect changes in the python files and retrigger the build and deployment
-
-
 ### Kaniko Image Caching
 
 * Kaniko will cache the output of RUN commands using remote layers ([info](https://github.com/GoogleContainerTools/kaniko#caching))
@@ -80,5 +74,4 @@ Setup a namespace for your development
 
 * [kubeflow/code-intelligence#78](https://github.com/kubeflow/code-intelligence/issues/78)Can we use [Skaffold sync](https://skaffold.dev/docs/references/yaml/) to sync the python code into the container
   so we can skip rebuilds?
-  * Can we use Flask reloader to auto-reload the code when it changes?
 * Look into using [skaffold profiles](https://skaffold.dev/docs/environment/profiles/)
