@@ -22,3 +22,10 @@ Deploying it
    ```
 
    * TODO(jlewi): We should probably define suitable prod and possibly staging environments as well
+
+1. You can also follow the [developer_guide.md](../developer_guide.md) to deploy it using skaffold
+
+1. TODO(jlewi): Add instructions for how to build and update the images; one way to do this would be to use
+   `skaffold build` followed by `kustomize edit`
+
+   * We may need/want to use skaffold profiles to define GCR buckets corresponding to dev, staging, and prod
