@@ -26,6 +26,7 @@ RUN pip install \
     flask==1.0.2 \
     flask-session==0.3.1 \
     ftfy==4.4.3 \
+    # TODO(jlewi): Do we really need gcfs?
     gcsfs==0.2.1 \
     google-auth-oauthlib==0.3.0 \
     google-auth==1.6.3 \
@@ -45,19 +46,10 @@ RUN pip install \
     tqdm==4.32.2 \
     widgetsnbextension==3.4.2
 
-# TODO(jlewi): Do we need this 
-#COPY requirements.txt .
-#RUN pip install -r requirements.txt
-
-# TODO(jlewi): It looks like caching the model inside the docker container is unnecessary because the code will download it
-# if the path doesn't exist.
-# copy files for api server
-#RUN apt install wget
-#RUN wget https://storage.googleapis.com/issue_label_bot/model/lang_model/models_22zkdqlr/trained_model_22zkdqlr.pkl -O model.pkl
-
 COPY Issue_Embeddings/flask_app flask_app/
-# TODO(jlewi): Model should be downloaded at runtime
+# TODO(jlewi): Model should be downloaded at runtime; do we still need to make the directory in
+# the docker file
 RUN mkdir -p model_files
 
-EXPOSE 3000 80 443
+EXPOSE 80
 CMD python app.py
