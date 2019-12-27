@@ -1,5 +1,6 @@
 """A combined model combines multiple models."""
 
+import itertools
 import logging
 
 from label_microservice import models
@@ -36,10 +37,9 @@ class CombinedLabelModels(models.IssueLabelModel):
 
     return predictions
 
-
-  def _combine_predictions(self, left, right):
+  @staticmethod
+  def _combine_predictions(left, right):
     """Combine two sets of predictions by taking the max probability."""
-
     results = {}
     results.update(left)
 

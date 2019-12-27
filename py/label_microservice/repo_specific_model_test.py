@@ -5,21 +5,7 @@ import pytest
 
 from label_microservice import mlp
 from label_microservice import repo_specific_model
-
-def assert_dict_equal(expected, actual):
-  message = []
-  equal = True
-  for k, v in expected.items():
-    if actual[k] != v:
-      message.append(f"For key {k} want {v}, got {actual[k]}")
-      equal = False
-
-  for k, v in actual.items():
-    if not k in expected:
-      message.append(f"Got extra key {k} with value {v}")
-      equal = False
-
-  assert equal, "\n".join(message)
+from label_microservice import test_util
 
 def test_predict_labels():
   """A unittest for predict labels.
@@ -41,7 +27,7 @@ def test_predict_labels():
   expected = {
     "label2": .9,
   }
-  assert_dict_equal(expected, results)
+  test_util.assert_dict_equal(expected, results)
 
 
 @mock.patch("repo_specific_model.requests.post")
@@ -64,7 +50,5 @@ if __name__ == "__main__":
   )
   logging.getLogger().setLevel(logging.INFO)
 
-  # DO NOT SUBMIT
-  test_get_issue_embedding_not_found()
-  #pytest.main()
+  pytest.main()
 
