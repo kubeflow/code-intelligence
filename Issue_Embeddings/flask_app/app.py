@@ -59,12 +59,10 @@ def text():
     # pre-process data
     title = request.json['title']
     body = request.json['body']
-    print("DO NOT SUBMIT")
-    # TODO(jlewi): logging.warning and logging.info didn't seem to be working
-    logging.warning(f"Recieved title={title} body={body}")
-    LOG.warning(f"Recieved title={title} body={body}")
+
+    logging.debug(f"Recieved title={title} body={body}")
     data = app.inference_wrapper.process_dict({'title':title, 'body':body})
-    LOG.warning(f'prediction requested for {str(data)}')
+    logging.debug(f'prediction requested for {str(data)}')
 
     # make prediction: you can only return strings with api
     # decode with np.frombuffer(request.content, dtype='<f4')
@@ -74,7 +72,7 @@ def text():
     # see if they are changing
     m = hashlib.md5()
     m.update(embeddings_str)
-    logging.info(f"hash of embeddings {m.hexdigest()}")
+    logging.debug(f"hash of embeddings {m.hexdigest()}")
     return embeddings_str
 
 @app.route("/all_issues/<string:owner>/<string:repo>", methods=["POST"])
