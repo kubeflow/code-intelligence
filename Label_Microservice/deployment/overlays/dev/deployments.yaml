@@ -27,7 +27,7 @@ spec:
             - name: ISSUE_EVENT_TOPIC
               value: "TEST_event_queue"
             - name: ISSUE_EVENT_SUBSCRIPTION
-              value: "TEST_subscription_for_event_queue"
+              value: "dev_subscription_for_event_queue"
             # Flask environment variables
             # Enable debug mode to trigger automatic reloading when code changes
             - name: FLASK_DEBUG

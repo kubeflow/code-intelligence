@@ -120,6 +120,7 @@ class Worker:
             # https://github.com/machine-learning-apps/Issue-Label-Bot/blob/26d8fb65be3b39de244c4be9e32b2838111dac10/flask_app/forward_utils.py#L57
             # The front end does have access to the title and body
             # but its not being sent right now.
+            logging.info(f"Recieved message {message}")
             installation_id = message.attributes['installation_id']
             repo_owner = message.attributes['repo_owner']
             repo_name = message.attributes['repo_name']
