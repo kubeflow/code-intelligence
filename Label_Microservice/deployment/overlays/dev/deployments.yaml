@@ -20,7 +20,8 @@ spec:
             - --
             - python3
             - -m
-            - label_microservice.app 
+            - label_microservice.worker 
+            - subscribe_from_env
           env:
             - name: PROJECT
               value: issue-label-bot-dev

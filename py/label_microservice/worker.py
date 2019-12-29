@@ -45,7 +45,7 @@ class Worker:
         # init pubsub subscription
         self.create_subscription_if_not_exists()
 
-        self._predictor = issue_label_predictor.IssueLabelPredictor()
+        self._predictor = None
 
     @classmethod
     def subscribe_from_env(cls):
@@ -116,6 +116,15 @@ class Worker:
                       }
                   }
             """
+            if self._predictor is None:
+                # We load the models here and not in __init__ because we
+                # need to create the TensorFlow models inside the thread used
+                # by pubsub for the callbacks. If we load them in __init__
+                # they get created in a different thread and TF will return
+                # errors when trying to use the models in a different thread.
+                logging.info("Creating predictor")
+                self._predictor = issue_label_predictor.IssueLabelPredictor()
+
             # The code that publishes the message is:
             # https://github.com/machine-learning-apps/Issue-Label-Bot/blob/26d8fb65be3b39de244c4be9e32b2838111dac10/flask_app/forward_utils.py#L57
             # The front end does have access to the title and body

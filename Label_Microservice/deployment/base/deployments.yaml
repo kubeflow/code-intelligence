@@ -16,7 +16,11 @@ spec:
         containers:
         - name: app
           image: gcr.io/issue-label-bot-dev/bot-worker
-          command: ['python3', '-m', 'label_microservice.app']
+          command: 
+            - python3
+            - -m 
+            - label_microservice.worker
+            - subscribe_from_env
           resources:
             requests:
               memory: "4Gi"

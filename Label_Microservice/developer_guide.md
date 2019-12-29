@@ -65,11 +65,16 @@ Setup a namespace for your development
      like it might require an additional flag to skaffold and require ports to be declared.
 
 
-1. Send a prediction request
+1. Send a prediction request using pubsub
 
    ```
-   curl -d '{"title":"some title", "text":"sometext"}' -H "Content-Type: application/json" -X POST http://localhost:8080/predict
+   python -m label_microservice.py --issue=kubeflow/kubeflow#4602
    ```   
+
+   * Look at the logs of the pod to see the prediction
+   * Ensure that you don't have other pods using the same pubsub subscription; otherwise your item might not get handled by the pod you are looking at
+
+
 ## Unresolved Issues
 
 * skaffold continuous mode (`skaffold dev` ) doesn't appear to detect changes in the python files and retrigger the build and deployment
