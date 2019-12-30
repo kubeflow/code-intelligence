@@ -5,6 +5,7 @@ import yaml
 from google.cloud import pubsub
 import logging
 from label_microservice.repo_config import RepoConfig
+from code_intelligence import github_util
 from code_intelligence.github_util import init as github_init
 from code_intelligence.github_util import get_issue_handle
 from code_intelligence.github_util import get_yaml
@@ -142,10 +143,8 @@ class Worker:
             }
             try:
                 predictions = self._predictor.predict(data)
-
-                logging.warning("Need to add labels to issue")
-                #self.add_labels_to_issue(installation_id, repo_owner, repo_name,
-                                         #issue_num, predictions)
+                self.add_labels_to_issue(installation_id, repo_owner, repo_name,
+                                         issue_num, predictions)
 
                 # log the prediction, which will be used to track the performance
                 # TODO(https://github.com/kubeflow/code-intelligence/issues/79)
@@ -155,17 +154,24 @@ class Worker:
                     'repo_owner': repo_owner,
                     'repo_name': repo_name,
                     'issue_num': int(issue_num),
-                    'labels': predictions['labels']
+                    'predictions': predictions,
                 }
                 logging.info(log_dict)
 
+            #TODO(jlewi): We should catch a more narrow exception.
             except Exception as e:
                 # hard to find out which errors should be handled differently (e.g., retrying for multiple times)
                 # and how to handle the error that the same message causes for multiple times
                 # so use generic exception to ignore all errors for now
-                logging.error(f'Addressing issue #{issue_num} from {repo_owner}/{repo_name} causes an error')
-                logging.error(f'Error type: {type(e)}')
-                logging.error(e)
+                logging.error(f"Exception occurred while handling issue "
+                              f"{repo_owner}/{repo_name}#{issue_num}. \n"
+                              f"Exception: {e}")
+                # This is a bit of a hack to get the stacktrace associated
+                # with the exception.
+                # TODO(jlewi): Do we want to not propogate the exception here?
+                # If so we should log the stacktrace of where the exception
+                # actually occured.
+                raise
 
             # acknowledge the message, or pubsub will repeatedly attempt to deliver it
             message.ack()
@@ -231,20 +237,34 @@ class Worker:
           repo_owner: repo owner
           repo_name: repo name
           issue_num: issue index
-          prediction: predicted result from `predict_labels()` function
-                      dict {'labels': list, 'probabilities': list}
+          prediction: dict str-> float; dictionary of labels and their predicted
+            probability
         """
-        # take an action if the prediction is confident enough
-        if predictions['labels']:
-            label_names, label_probabilities = self.filter_specified_labels(repo_owner,
-                                                                            repo_name,
-                                                                            predictions)
-        else:
-            label_names = []
+        # TODO(jlewi): Where should filtering happen? For repo specific models
+        # the thresholding could happen in the in the RepoSpecificModel class
+        # and
+        ## take an action if the prediction is confident enough
+        #if predictions['labels']:
+            #label_names, label_probabilities = self.filter_specified_labels(repo_owner,
+                                                                            #repo_name,
+                                                                            #predictions)
+        #else:
+            #label_names = []
 
         # get the isssue handle
-        issue = get_issue_handle(installation_id, repo_owner, repo_name, issue_num)
+        #issue = get_issue_handle(installation_id, repo_owner, repo_name, issue_num)
 
+        # TODO(jlewi): Should we cache the GitHub App? What about token
+        # expiration?
+        ghapp = github_util.get_app()
+
+        if not installation_id:
+            logging.info("No GitHub App Installation Provided Fetching it")
+            installation_id = ghapp.get_installation_id(repo_owner, repo_name)
+        install = ghapp.get_installation(installation_id)
+        issue = install.issue(repo_owner, repo_name, issue_num)
+
+        label_names = predictions.keys()
         if label_names:
             # create message
             message = """Issue-Label Bot is automatically applying the labels `{labels}` to this issue, with the confidence of {confidence}.

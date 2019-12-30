@@ -1,3 +1,5 @@
+import logging
+
 from collections import namedtuple, Counter
 from github3 import GitHub
 from pathlib import Path
@@ -34,11 +36,13 @@ class GitHubApp(GitHub):
 
     def get_installation(self, installation_id):
         "login as app installation without requesting previously gathered data."
+        logging.info("Logging in as GitHub App")
         with open(self.path, 'rb') as key_file:
             client = GitHub()
             client.login_as_app_installation(private_key_pem=key_file.read(),
                                              app_id=self.app_id,
                                              installation_id=installation_id)
+        logging.info("Successfully logged in as GitHub App")
         return client
 
     def get_test_installation_id(self):
@@ -85,7 +89,9 @@ class GitHubApp(GitHub):
 
         response = requests.get(url=url, headers=headers)
         if response.status_code != 200:
-            raise Exception(f'Status code : {response.status_code}, {response.json()}')
+            raise Exception(f"There was a problem requesting URL={URL} "
+                            f"Status code : {response.status_code}, "
+                            f"Response:{response.json()}")
         return response.json()['id']
 
     def get_installation_access_token(self, installation_id):
