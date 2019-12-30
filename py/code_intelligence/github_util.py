@@ -9,13 +9,18 @@ def get_issue_handle(installation_id, username, repository, number):
     install = ghapp.get_installation(installation_id)
     return install.issue(username, repository, number)
 
-def get_yaml(owner, repo):
+def get_yaml(owner, repo, ghapp=None):
     """
     Looks for the yaml file in a /.github directory.
 
     yaml file must be named issue_label_bot.yaml
     """
-    ghapp = github_app.GitHubApp.create_from_env()
+
+    if not ghapp:
+        # TODO(jlewi): Should we deprecate this code path and always pass
+        # in the github app?
+        ghapp = github_app.GitHubApp.create_from_env()
+
     try:
         # get the app installation handle
         inst_id = ghapp.get_installation_id(owner=owner, repo=repo)

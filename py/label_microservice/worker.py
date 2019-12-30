@@ -1,13 +1,13 @@
 import os
 import fire
 import requests
+import traceback
 import yaml
 from google.cloud import pubsub
 import logging
 from label_microservice.repo_config import RepoConfig
 from code_intelligence import github_app
 from code_intelligence import github_util
-from code_intelligence.github_util import get_yaml
 from code_intelligence.pubsub_util import check_subscription_name_exists
 from code_intelligence.pubsub_util import create_subscription_if_not_exists
 from label_microservice import issue_label_predictor
@@ -156,19 +156,17 @@ class Worker:
                 logging.info(log_dict)
 
             #TODO(jlewi): We should catch a more narrow exception.
+            # On exception if we don't ack the message then we risk problems
+            # caused by poison pills repeatedly crashing our workers
+            # and preventing progress.
             except Exception as e:
                 # hard to find out which errors should be handled differently (e.g., retrying for multiple times)
                 # and how to handle the error that the same message causes for multiple times
                 # so use generic exception to ignore all errors for now
                 logging.error(f"Exception occurred while handling issue "
                               f"{repo_owner}/{repo_name}#{issue_num}. \n"
-                              f"Exception: {e}")
-                # This is a bit of a hack to get the stacktrace associated
-                # with the exception.
-                # TODO(jlewi): Do we want to not propogate the exception here?
-                # If so we should log the stacktrace of where the exception
-                # actually occured.
-                raise
+                              f"Exception: {e}\n"
+                              f"{traceback.format_exc()}")
 
             # acknowledge the message, or pubsub will repeatedly attempt to deliver it
             message.ack()
@@ -189,41 +187,55 @@ class Worker:
         except KeyboardInterrupt:
             logging.info(future.cancel())
 
-    # TODO(jlewi): Where should this function go after the refactor in
-    # https://github.com/kubeflow/code-intelligence/pull/77? This function
-    # is fetching the repo specific bot config and applying it. Need to think
-    # about what we want to do there. e.g. do we want to use it for label
-    # aliases? This was originally only applied to the repo specific labels?
-    # Do we really need this? This feels redundant with the probability thresholds
-    # for the labels.
-    def filter_specified_labels(self, repo_owner, repo_name, predictions):
+    # TODO(jlewi): We should refactor this to make it easier to unittest and
+    # add an appropriate unittest.
+    @staticmethod
+    def apply_repo_config(repo_config, repo_owner, repo_name, predictions,
+                          ghapp):
         """
         Only select those labels which are specified by yaml file to be predicted.
         If there is no setting in the yaml file, return all predicted items.
+
+        Also apply any aliases listed in the config file.
+
         Args:
+          repo_config: A dictionary representing the contents of the
+            .github/issue_label_bot.yaml configuration for the repository
           repo_owner: repo owner, str
           repo_name: repo name, str
-          prediction: predicted result from `predict_labels()` function
-                      dict {'labels': list, 'probabilities': list}
+          prediction: dict str label -> probability
         """
-        label_names = []
-        label_probabilities = []
-        # handle the yaml file
-        yaml = get_yaml(owner=repo_owner, repo=repo_name)
+        # Make a copy of the predictions so we don't modify the original.
+        filtered = {}
+        filtered.update(predictions)
+
+        if not repo_config:
+            logging.info("No repo specific config found for "
+                         f"{repo_owner}/{repo_name}")
+            return filtered
+
+        # Alias any labels.
+        if "label-alias" in repo_config:
+            logging.info(f"Applying label aliases for "
+                         f"{repo_owner}/{repo_config}")
+            for old, new in repo_config["label-alias"].items():
+                if old in filtered:
+                    filtered[new] = filtered[old]
+                    del filtered[old]
+
+
         # user may set the labels they want to predict
-        if yaml and 'predicted-labels' in yaml:
-            for name, proba in zip(predictions['labels'], predictions['probabilities']):
-                if name in yaml['predicted-labels']:
-                    label_names.append(name)
-                    label_probabilities.append(proba)
+        if "predicted-labels" in repo_config:
+            allowed = set(repo_config["predicted-labels"])
+            current_labels = filtered.keys()
+            for k in current_labels:
+                if not k in allowed:
+                    del filtered[k]
         else:
-            logging.warning(f'YAML file does not contain `predicted-labels`, '
-                             'bot will predict all labels with enough confidence')
-            # if user do not set `predicted-labels`,
-            # predict all labels with enough confidence
-            label_names = predictions['labels']
-            label_probabilities = predictions['probabilities']
-        return label_names, label_probabilities
+            logging.info(f'{repo_owner}/{repo_name} config file does not contain `predicted-labels`, '
+                         f'bot will predict all labels with enough confidence')
+
+        return filtered
 
     def add_labels_to_issue(self, installation_id, repo_owner, repo_name,
                             issue_num, predictions):
@@ -237,23 +249,17 @@ class Worker:
           prediction: dict str-> float; dictionary of labels and their predicted
             probability
         """
-        # TODO(jlewi): Where should filtering happen? For repo specific models
-        # the thresholding could happen in the in the RepoSpecificModel class
-        # and
-        ## take an action if the prediction is confident enough
-        #if predictions['labels']:
-            #label_names, label_probabilities = self.filter_specified_labels(repo_owner,
-                                                                            #repo_name,
-                                                                            #predictions)
-        #else:
-            #label_names = []
-
-        # get the isssue handle
-        #issue = get_issue_handle(installation_id, repo_owner, repo_name, issue_num)
 
         # TODO(jlewi): Should we cache the GitHub App? What about token
         # expiration?
         ghapp = github_app.GitHubApp.create_from_env()
+
+        # handle the yaml file
+        repo_config = github_util.get_yaml(owner=repo_owner, repo=repo_name,
+                                           ghapp=ghapp)
+
+        predictions = self.apply_repo_config(repo_config, repo_owner, repo_name,
+                                             predictions, ghapp)
 
         if not installation_id:
             logging.info("No GitHub App Installation Provided Fetching it")
@@ -264,15 +270,26 @@ class Worker:
         label_names = predictions.keys()
         if label_names:
             # create message
-            probabilities = ["{:.2f}".format(predictions[k]) for k in label_names]
-            message = """Issue-Label Bot is automatically applying the labels `{labels}` to this issue, with the confidence of {confidence}.
-            Please mark this comment with :thumbsup: or :thumbsdown: to give our bot feedback!
-            Links: [app homepage](https://github.com/marketplace/issue-label-bot), [dashboard]({app_url}data/{repo_owner}/{repo_name}) and [code](https://github.com/hamelsmu/MLapp) for this bot.
-            """.format(labels="`, `".join(label_names),
-                       confidence=", ".join(probabilities),
-                       app_url=self.app_url,
-                       repo_owner=repo_owner,
-                       repo_name=repo_name)
+            # Create a markdown table with probabilities.
+            rows = ["| Label  | Probability |",
+                    "| ------------- | ------------- |"]
+
+            for l, p in predictions.items():
+                rows.append("| {} | {:.2f} |".format(l, p))
+
+            lines = ["Issue-Label Bot is automatically applying the labels:",
+                     ""]
+            lines.extend(rows)
+            lines.append("")
+            lines.append("Please mark this comment with :thumbsup: or :thumbsdown: "
+                         "to give our bot feedback! ")
+            lines.append("Links: [app homepage](https://github.com/marketplace/issue-label-bot), "
+                         "[dashboard]({app_url}data/{repo_owner}/{repo_name}) and "
+                         "[code](https://github.com/hamelsmu/MLapp) for this bot.".format(
+                             app_url=self.app_url,
+                             repo_owner=repo_owner,
+                             repo_name=repo_name))
+            message = "\n".join(lines)
             # label the issue using the GitHub api
             issue.add_labels(*label_names)
             logging.info(f'Add `{"`, `".join(label_names)}` to the issue # {issue_num}')
