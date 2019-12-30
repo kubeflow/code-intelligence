@@ -106,11 +106,16 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
       logging.error("No embeddings returned for issue")
       return {}
 
-    # change embedding from 1d to 2d for prediction and extract the result
+    # Predict probabilities expects a list of lists; i.e a 2-d matrix where
+    # each column is a different input vector. The output is also a list of
+    # lists but we extract the first list since we want a single output vector.
     label_probabilities = self._mlp_predictor.predict_probabilities(
       [issue_embedding])[0]
 
     # check thresholds to get labels that need to be predicted
+    # TODO(kubeflow/code-intelligence/issues/83): We should store the labels
+    # in the MLPClassifier to decrease the risk that they get out of sync
+    # with the probabilities.
     predictions = dict(zip(self._label_names, label_probabilities))
 
     # TODO(https://github.com/kubeflow/code-intelligence/issues/79):
