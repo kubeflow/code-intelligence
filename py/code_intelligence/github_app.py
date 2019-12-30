@@ -1,4 +1,5 @@
 import logging
+import os
 
 from collections import namedtuple, Counter
 from github3 import GitHub
@@ -26,6 +27,13 @@ class GitHubApp(GitHub):
 
         if not self.path.is_file():
             raise ValueError(f'argument: `pem_path` must be a valid filename. {pem_path} was not found.')
+
+    @staticmethod
+    def create_from_env():
+        """Create a new instance based on environment variables."""
+        app_id = os.getenv('GITHUB_APP_ID')
+        key_file_path = os.getenv("GITHUB_APP_PEM_KEY")
+        return GitHubApp(pem_path=key_file_path, app_id=app_id)
 
     def get_app(self):
         with open(self.path, 'rb') as key_file:

@@ -19,7 +19,7 @@ class SecretCreator:
 
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(blob_name)
-    contents = blob.download_as_string()
+    contents = blob.download_as_string().decode()
 
     subprocess.check_call(["kubectl", "create", "secret", "generic",
                            "github-app",

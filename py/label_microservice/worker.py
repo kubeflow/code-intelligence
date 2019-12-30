@@ -5,9 +5,8 @@ import yaml
 from google.cloud import pubsub
 import logging
 from label_microservice.repo_config import RepoConfig
+from code_intelligence import github_app
 from code_intelligence import github_util
-from code_intelligence.github_util import init as github_init
-from code_intelligence.github_util import get_issue_handle
 from code_intelligence.github_util import get_yaml
 from code_intelligence.pubsub_util import check_subscription_name_exists
 from code_intelligence.pubsub_util import create_subscription_if_not_exists
@@ -254,7 +253,7 @@ class Worker:
 
         # TODO(jlewi): Should we cache the GitHub App? What about token
         # expiration?
-        ghapp = github_util.get_app()
+        ghapp = github_app.GitHubApp.create_from_env()
 
         if not installation_id:
             logging.info("No GitHub App Installation Provided Fetching it")
@@ -265,11 +264,12 @@ class Worker:
         label_names = predictions.keys()
         if label_names:
             # create message
+            probabilities = ["{:.2f}".format(predictions[k]) for k in label_names]
             message = """Issue-Label Bot is automatically applying the labels `{labels}` to this issue, with the confidence of {confidence}.
             Please mark this comment with :thumbsup: or :thumbsdown: to give our bot feedback!
             Links: [app homepage](https://github.com/marketplace/issue-label-bot), [dashboard]({app_url}data/{repo_owner}/{repo_name}) and [code](https://github.com/hamelsmu/MLapp) for this bot.
             """.format(labels="`, `".join(label_names),
-                       confidence=", ".join(["{:.2f}".format(p) for p in label_probabilities]),
+                       confidence=", ".join(probabilities),
                        app_url=self.app_url,
                        repo_owner=repo_owner,
                        repo_name=repo_name)
