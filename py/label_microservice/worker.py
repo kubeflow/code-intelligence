@@ -41,8 +41,6 @@ class Worker:
 
         self.app_url = os.environ['APP_URL']
 
-        # init GitHub app
-        github_init()
         # init pubsub subscription
         self.create_subscription_if_not_exists()
 

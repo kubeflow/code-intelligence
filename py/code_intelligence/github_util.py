@@ -3,17 +3,6 @@ import logging
 from code_intelligence.github_app import GitHubApp
 import yaml
 
-
-def init():
-    "Load all necessary artifacts to make predictions."
-    #save keyfile
-    pem_string = os.getenv('PRIVATE_KEY')
-    if not pem_string:
-        raise ValueError('Environment variable PRIVATE_KEY was not supplied.')
-
-    with open('private-key.pem', 'wb') as f:
-        f.write(str.encode(pem_string))
-
 # TODO(jlewi): init is taking the PRIVATE_KEY from an environment variable
 # and then writing it to a file. It would probably be better to follow
 # the pattern of GOOGLE_APPLICATION_CREDENTIALS; i.e. mount the K8s secret
@@ -21,8 +10,8 @@ def init():
 # the key file.
 def get_app():
     "grab a fresh instance of the app handle."
-    app_id = os.getenv('APP_ID')
-    key_file_path = 'private-key.pem'
+    app_id = os.getenv('GITHUB_APP_ID')
+    key_file_path = os.getenv("GITHUB_APP_PEM_KEY")
     ghapp = GitHubApp(pem_path=key_file_path, app_id=app_id)
     return ghapp
 

@@ -73,13 +73,19 @@ namespace/mlapp created
 
 For testing, you need to use another GitHub app to run as the bot in production. You need to register a testing GitHub app by following steps 1-4 of [this document](https://developer.github.com/apps/quickstart-guides/setting-up-your-development-environment/). Remember to store your ``APP_ID``, ``PRIVATE_KEY`` and ``WEBHOOK_SECRET``. And you will need to update the ``Webhook URL`` to be the flask app url later.
 
-Now, I have created a GitHub app in my GitHub account. The needed environment variables for testing the bot are stored in Google Cloud Storage in the GCP project ``github-probots`` (same as the secret used in production) and can be retrieved by the command.
+As documented in kubeflow/code-intelligence#84 we have created the 
+**kf-label-bot-dev** GitHub App to be used for development with Kubeflow.
+The PEM key for this bot is stored at
 
+To create the secret in your dev cluster you can use the script 
+`create_secrets.py`.
 
 ```
-gsutil cp gs://github-probots_secrets/ml-app-inference-secret-test.yaml /tmp
+cd Label_Microservice/scripts
+python3 create_secrets.py create-dev
 ```
 
+You 
 
 You should encode the ``APP_ID``, ``PRIVATE_KEY`` and ``WEBHOOK_SECRET`` with base64 encoder and modify the values in the file ``/tmp/ml-app-inference-secret-test.yaml`` if you would like to use your GitHub app to test the services. 
 

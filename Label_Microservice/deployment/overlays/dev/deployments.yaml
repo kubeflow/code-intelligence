@@ -29,6 +29,12 @@ spec:
               value: "TEST_event_queue"
             - name: ISSUE_EVENT_SUBSCRIPTION
               value: "dev_subscription_for_event_queue"
+            # The values for the Kubeflow kf-label-bot-dev application
+            # See kubeflow/code-intelligence#84
+            - name: GITHUB_APP_ID
+              value: "50112"
+            - name: GITHUB_APP_PEM_KEY
+              value: /var/secrets/github/kf-label-bot-dev.private-key.pem
             # Flask environment variables
             # Enable debug mode to trigger automatic reloading when code changes
             - name: FLASK_DEBUG

@@ -13,6 +13,9 @@ spec:
         - name: google-cloud-key
           secret:
             secretName: user-gcp-sa
+        - name: github-app
+          secret:
+            secretName: github-app
         containers:
         - name: app
           image: gcr.io/issue-label-bot-dev/bot-worker
@@ -28,6 +31,8 @@ spec:
           volumeMounts:
             - name: google-cloud-key
               mountPath: /var/secrets/google
+            - name: github-app
+              mountPath: /var/secrets/github
           env:
             - name: PORT
               value: "80"
@@ -51,28 +56,34 @@ spec:
             #    secretKeyRef:
             #      name: ml-app-inference-secret
             #      key: GH_ISSUE_API_KEY
-            # APP_ID and APP_URL identify the GitHub OAuth app
+            # APP_ID and APP_URL identify the GitHub OAuth app            
+            # TODO(jlewi): Why do we load this from a secret? Why not
+            # just store the value here?
             - name: APP_ID
               valueFrom:
                secretKeyRef:
                  name: ml-app-inference-secret
                  key: APP_ID
+            # TODO(jlewi): Why do we load this from a secret? Why not
+            # just store the value here?
             - name: APP_URL
               valueFrom:
                secretKeyRef:
                  name: ml-app-inference-secret
                  key: APP_URL
             # PRIVATE_KEY is the key for the GitHub OAuth App
-            - name: PRIVATE_KEY
-              valueFrom:
-               secretKeyRef:
-                 name: ml-app-inference-secret
-                 key: PRIVATE_KEY
+            #- name: PRIVATE_KEY
+            #  valueFrom:
+            #   secretKeyRef:
+            #     name: ml-app-inference-secret
+            #     key: PRIVATE_KEY
             #- name: WEBHOOK_SECRET
             #  valueFrom:
             #    secretKeyRef:
             #      name: ml-app-inference-secret
             #      key: WEBHOOK_SECRET            
+            - name: GITHUB_APP_PEM_KEY
+              value: /var/secrets/github/kf-label-bot-dev.private-key.pem
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: /var/secrets/google/user-gcp-sa.json
         restartPolicy: Always
