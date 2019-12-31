@@ -110,6 +110,7 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
     # with shape (n_samples, n_clasess) (for more info see
     # https://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPClassifier.html#sklearn.neural_network.MLPClassifier.predict_proba)
     # We take the first row of this matrix because we only have 1 sample.
+    # Note: result[0] is essentially equivalent to result[0, :]
     label_probabilities = self._mlp_predictor.predict_probabilities(
       [issue_embedding])[0]
 
