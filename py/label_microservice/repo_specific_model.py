@@ -106,8 +106,10 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
       return {}
 
     # Predict probabilities expects a list of lists; i.e a 2-d matrix where
-    # each column is a different input vector. The output is also a list of
-    # lists but we extract the first list since we want a single output vector.
+    # each column is a different input vector. The output is an array
+    # with shape (n_samples, n_clasess) (for more info see
+    # https://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPClassifier.html#sklearn.neural_network.MLPClassifier.predict_proba)
+    # We take the first row of this matrix because we only have 1 sample.
     label_probabilities = self._mlp_predictor.predict_probabilities(
       [issue_embedding])[0]
 
