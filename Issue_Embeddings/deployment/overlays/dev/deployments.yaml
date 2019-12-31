@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: server
+spec:
+    # Use a single replica for development
+    replicas: 1
+    template:
+      spec:
+        containers:
+        - name: app
+          env:
+            - name: PROJECT
+              value: issue-label-bot-dev
+            - name: ISSUE_EVENT_TOPIC
+              value: "TEST_event_queue"
+            - name: ISSUE_EVENT_SUBSCRIPTION
+              value: "TEST_subscription_for_event_queue"
+            # Flask environment variables
+            # TODO: Unfortunately it looks like if we enable debugging we hit the following error
+            # https://stackoverflow.com/questions/53522052/flask-app-valueerror-signal-only-works-in-main-thread
+            # as a result we can't rely on flask auto-reloading to pick up file sync changes from skaffold
+            - name: FLASK_DEBUG
+              value: "false"
+            - name: FLASK_ENV
+              value: "production"

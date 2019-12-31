@@ -31,6 +31,8 @@ def find_max_issue_num(owner, repo):
     issue_num = issue_meta.strip().split('\n')[0][1:]
     return int(issue_num)
 
+# TODO(jlewi): Looks like idx isn't used can we remove it?
+# TODO(jlewi): Should we use the GitHub API rather than using the web?
 def get_issue_text(num, idx, owner, repo, skip_issue=True):
     """
     Get the raw text of an issue body and label.

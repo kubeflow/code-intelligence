@@ -7,11 +7,15 @@
 
 Embeddings are learned from a language model Trained On 16M+ GitHub Issues.  
 
-The manifest files in [/deployment](/Issue_Embeddings/deployment) define a service that will return 2400 dimensional embeddings given the text of an issue.  The api endpoints are hosted on https://embeddings.gh-issue-labeler.com/
+The manifest files in [/deployment](/Issue_Embeddings/deployment) define a service that will return 2400 dimensional embeddings given the text of an issue.  The manifests define an incluster/internal service suitable for use as a backend for other services. If you need to
+expose it publicly you can do so by
 
-All routes expect `POST` requests with a header containing a `Token` field. Below is  a list of endpoints:
+  1. Exposing it behind the Kubeflow ingress so you get authorization and access control
+  1. Creating its own ingress
 
-1. `https://embeddings.gh-issue-labeler.com/text`:  expects a json payload of `title` and `body` and returns a single 2,400 dimensional vector that represents latent features of the text. For example, this is how you would interact with this endpoint from python:
+All routes expect `POST`. Below is  a list of endpoints:
+
+1. `http:///issue-embedding-server`:  expects a json payload of `title` and `body` and returns a single 2,400 dimensional vector that represents latent features of the text. For example, this is how you would interact with this endpoint from python:
 
     ```python
     import requests
@@ -19,25 +23,20 @@ All routes expect `POST` requests with a header containing a `Token` field. Belo
     import numpy as np
     from passlib.apps import custom_app_context as pwd_context
 
-    API_ENDPOINT = 'https://embeddings.gh-issue-labeler.com/text'
-    API_KEY = 'YOUR_API_KEY' # Contact maintainers to get this
+    API_ENDPOINT = 'http://issue-embedding-server/text'
 
     # A toy example of a GitHub Issue title and body
     data = {'title': 'Fix the issue', 
             'body': 'I am encountering an error\n when trying to push the button.'}
 
     # sending post request and saving response as response object 
-    r = requests.post(url=API_ENDPOINT,
-                    headers={'Token':pwd_context.hash(API_KEY)},
-                    json=data)
+    r = requests.post(url=API_ENDPOINT, json=data)
 
     # convert string back into a numpy array
     embeddings = np.frombuffer(r.content, dtype='<f4')
     ```
 
-
-
-2. `https://embeddings.gh-issue-labeler.com//all_issues/<owner>/<repo>` :construction: this will return a numpy array of the shape (# of labeled issues in repo, 2400), as well a list of all the labels for each issue.  This endpoint is still under construction.
+2. `https://issue-embedding-server/all_issues/<owner>/<repo>` :construction: this will return a numpy array of the shape (# of labeled issues in repo, 2400), as well a list of all the labels for each issue.  This endpoint is still under construction.
 
 # A Language Model Trained On 16M+ GitHub Issues For Transfer Learning
 
