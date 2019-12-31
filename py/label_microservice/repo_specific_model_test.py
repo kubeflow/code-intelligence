@@ -18,7 +18,10 @@ def test_predict_labels():
   model._mlp_predictor.predict_probabilities.return_value = [[.2, .9]]
 
   model._label_names = ["label1", "label2"]
-  model._label_thresholds = [.5 , .5]
+  model._label_thresholds = {
+    "label1": .5 ,
+    "label2": .5
+  }
   model._get_issue_embedding = mock.MagicMock()
   model._get_issue_embedding.return_value = [(10, 10)]
 

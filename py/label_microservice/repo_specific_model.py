@@ -21,8 +21,7 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
   def __init__(self):
     self.config = None
     self._mlp_predictor = None
-    self._embedding_api_endpoint = None
-    self._embedding_api_key = None
+    self._embedding_api_endpoint = DEFAULT_EMBEDDING_API_ENDPOINT
 
     # A list of labels. The order of the labels corresponds to the order
     # of the probabilities returned by the model
