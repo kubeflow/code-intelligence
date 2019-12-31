@@ -1,20 +1,16 @@
 import os
 import fire
 import requests
+import traceback
 import yaml
-import numpy as np
-from passlib.apps import custom_app_context as pwd_context
 from google.cloud import pubsub
 import logging
 from label_microservice.repo_config import RepoConfig
-from label_microservice.mlp import MLPWrapper
-from code_intelligence.github_util import init as github_init
-from code_intelligence.github_util import get_issue_handle
-from code_intelligence.github_util import get_yaml
-from code_intelligence.embeddings import get_issue_text
-from code_intelligence.gcs_util import download_file_from_gcs
+from code_intelligence import github_app
+from code_intelligence import github_util
 from code_intelligence.pubsub_util import check_subscription_name_exists
 from code_intelligence.pubsub_util import create_subscription_if_not_exists
+from label_microservice import issue_label_predictor
 
 class Worker:
     """
@@ -29,8 +25,7 @@ class Worker:
     def __init__(self,
                  project_id='issue-label-bot-dev',
                  topic_name='event_queue',
-                 subscription_name='subscription_for_event_queue',
-                 embedding_api_endpoint='https://embeddings.gh-issue-labeler.com/text'):
+                 subscription_name='subscription_for_event_queue',):
         """
         Initialize the parameters and GitHub app.
         Args:
@@ -39,34 +34,36 @@ class Worker:
           subscription_name: pubsub subscription name, str
           embedding_api_endpoint: endpoint of embedding api microservice, str
         """
-        # TODO(chunhsiang): change the embedding microservice to be an internal DNS of k8s service.
-        #   see: https://v1-12.docs.kubernetes.io/docs/concepts/services-networking/dns-pod-service/#services
         self.project_id = project_id
         self.topic_name = topic_name
         self.subscription_name = subscription_name
-        self.embedding_api_endpoint = embedding_api_endpoint
-        self.embedding_api_key = os.environ['GH_ISSUE_API_KEY']
+
         self.app_url = os.environ['APP_URL']
 
-        # init GitHub app
-        github_init()
         # init pubsub subscription
         self.create_subscription_if_not_exists()
 
-    def load_yaml(self, repo_owner, repo_name):
-        """
-        Load config from the YAML of the specific repo_owner/repo_name.
-        Args:
-          repo_owner: str
-          repo_name: str
-        """
-        # TODO(chunhsiang): for now all the paths including gcs and local sides
-        #   are set using repo_owner/repo_name (see repo_config.py), meaning the
-        #   paths returned from `RepoConfig(...)` are related to the specific
-        #   repo_owner/repo_name.
-        #   Will update them after finish the config map.
-        self.config = RepoConfig(repo_owner=repo_owner, repo_name=repo_name)
+        self._predictor = None
 
+    @classmethod
+    def subscribe_from_env(cls):
+        """Build the worker from environment variables and subscribe"""
+        required_env = ["PROJECT", "ISSUE_EVENT_TOPIC",
+                        "ISSUE_EVENT_SUBSCRIPTION"]
+        missing = []
+        for e in required_env:
+            if not os.environ.get(e):
+                missing.append(e)
+
+        if missing:
+            raise ValueError(f"Missing required environment variables "
+                             f"{','.join(required)}")
+        worker = Worker(project_id=os.getenv("PROJECT"),
+                        topic_name=os.getenv("ISSUE_EVENT_TOPIC"),
+                        subscription_name=os.getenv("ISSUE_EVENT_SUBSCRIPTION"))
+        worker.subscribe()
+
+        return worker
     def check_subscription_name_exists(self):
         """
         Check if the subscription name exists in the project.
@@ -117,36 +114,59 @@ class Worker:
                       }
                   }
             """
+            if self._predictor is None:
+                # We load the models here and not in __init__ because we
+                # need to create the TensorFlow models inside the thread used
+                # by pubsub for the callbacks. If we load them in __init__
+                # they get created in a different thread and TF will return
+                # errors when trying to use the models in a different thread.
+                logging.info("Creating predictor")
+                self._predictor = issue_label_predictor.IssueLabelPredictor()
+
+            # The code that publishes the message is:
+            # https://github.com/machine-learning-apps/Issue-Label-Bot/blob/26d8fb65be3b39de244c4be9e32b2838111dac10/flask_app/forward_utils.py#L57
+            # The front end does have access to the title and body
+            # but its not being sent right now.
+            logging.info(f"Recieved message {message}")
             installation_id = message.attributes['installation_id']
             repo_owner = message.attributes['repo_owner']
             repo_name = message.attributes['repo_name']
             issue_num = message.attributes['issue_num']
-            logging.info(f'Receive issue #{issue_num} from {repo_owner}/{repo_name}')
 
+            data = {
+                "repo_owner": repo_owner,
+                "repo_name": repo_name,
+                "issue_num": issue_num,
+            }
             try:
-                # predict labels
-                self.load_yaml(repo_owner, repo_name)
-                self.download_model_from_gcs()
-                predictions, issue_embedding = self.predict_labels(repo_owner, repo_name, issue_num)
+                predictions = self._predictor.predict(data)
                 self.add_labels_to_issue(installation_id, repo_owner, repo_name,
                                          issue_num, predictions)
 
                 # log the prediction, which will be used to track the performance
+                # TODO(https://github.com/kubeflow/code-intelligence/issues/79)
+                # Ensure we capture the information needed to measure performance
+                # in stackdriver
                 log_dict = {
                     'repo_owner': repo_owner,
                     'repo_name': repo_name,
                     'issue_num': int(issue_num),
-                    'labels': predictions['labels']
+                    'predictions': predictions,
                 }
                 logging.info(log_dict)
 
+            #TODO(jlewi): We should catch a more narrow exception.
+            # On exception if we don't ack the message then we risk problems
+            # caused by poison pills repeatedly crashing our workers
+            # and preventing progress.
             except Exception as e:
                 # hard to find out which errors should be handled differently (e.g., retrying for multiple times)
                 # and how to handle the error that the same message causes for multiple times
                 # so use generic exception to ignore all errors for now
-                logging.error(f'Addressing issue #{issue_num} from {repo_owner}/{repo_name} causes an error')
-                logging.error(f'Error type: {type(e)}')
-                logging.error(e)
+                logging.error(f"Exception occurred while handling issue "
+                              f"{repo_owner}/{repo_name}#{issue_num}. \n"
+                              f"Exception: {e}\n"
+                              f"{traceback.format_exc()}")
 
             # acknowledge the message, or pubsub will repeatedly attempt to deliver it
             message.ack()
@@ -156,162 +176,66 @@ class Worker:
         future = subscriber.subscribe(subscription_path,
                                       callback=callback,
                                       flow_control=flow_control)
+
+        # Calling future.result will block forever. future.cancel can be called
+        # to interrupt it.
+        # TODO(jlewi): It might be better to return the future. This would
+        # allow the caller to potentially cancel the process
         try:
+            logging.info("Wait forever or until pubsub future is cancelled")
             logging.info(future.result())
         except KeyboardInterrupt:
             logging.info(future.cancel())
 
-    def get_issue_embedding(self, repo_owner, repo_name, issue_num):
-        """
-        Get the embedding of the issue by calling GitHub Issue
-        Embeddings API endpoint.
-        Args:
-          repo_owner: repo owner
-          repo_name: repo name
-          issue_num: issue index
-
-        Return
-        ------
-        numpy.ndarray
-            shape: (1600,)
-        """
-
-        issue_text = get_issue_text(owner=repo_owner,
-                                    repo=repo_name,
-                                    num=issue_num,
-                                    idx=None)
-        data = {'title': issue_text['title'],
-                'body': issue_text['body']}
-
-        # sending post request and saving response as response object
-        r = requests.post(url=self.embedding_api_endpoint,
-                          headers={'Token': pwd_context.hash(self.embedding_api_key)},
-                          json=data)
-        if r.status_code != 200:
-            logging.warning(f'Status code is {r.status_code} not 200: '
-                            'can not retrieve the embedding')
-            return None
-
-        embeddings = np.frombuffer(r.content, dtype='<f4')[:1600]
-        return embeddings
-
-    def download_model_from_gcs(self):
-        """Download the model from GCS to local path."""
-        # download model
-        download_file_from_gcs(self.config.model_bucket_name,
-                               self.config.model_gcs_path,
-                               self.config.model_local_path)
-
-        # download lable columns
-        download_file_from_gcs(self.config.model_bucket_name,
-                               self.config.labels_gcs_path,
-                               self.config.labels_local_path)
-
-    def load_label_columns(self):
-        """
-        Load label info from local path.
-
-        Return
-        ------
-        dict
-            {'labels': list, 'probability_thresholds': {label_index: threshold}}
-        """
-        with open(self.config.labels_local_path, 'r') as f:
-            label_columns = yaml.safe_load(f)
-        return label_columns
-
-    def predict_issue_probability(self, repo_owner, repo_name, issue_num):
-        """
-        Predict probabilities of labels for an issue.
-        Args:
-          repo_owner: repo owner
-          repo_name: repo name
-          issue_num: issue index
-
-        Return
-        ------
-        numpy.ndarray
-            shape: (label_count,)
-        numpy.ndarray
-            shape: (1600,)
-        """
-        issue_embedding = self.get_issue_embedding(repo_owner=repo_owner,
-                                                   repo_name=repo_name,
-                                                   issue_num=issue_num)
-
-        # if not retrieve the embedding, ignore to predict it
-        if issue_embedding is None:
-            return [], None
-
-        mlp_wrapper = MLPWrapper(clf=None,
-                                 model_file=self.config.model_local_path,
-                                 load_from_model=True)
-        # change embedding from 1d to 2d for prediction and extract the result
-        label_probabilities = mlp_wrapper.predict_probabilities([issue_embedding])[0]
-        return label_probabilities, issue_embedding
-
-    def predict_labels(self, repo_owner, repo_name, issue_num):
-        """
-        Predict labels for given issue.
-        Args:
-          repo_owner: repo owner
-          repo_name: repo name
-          issue_num: issue index
-
-        Return
-        ------
-        dict
-            {'labels': list, 'probabilities': list}
-        numpy.ndarray
-            shape: (1600,)
-        """
-        logging.info(f'Predicting labels for the issue #{issue_num} from {repo_owner}/{repo_name}')
-        # get probabilities of labels for an issue
-        label_probabilities, issue_embedding = self.predict_issue_probability(repo_owner, repo_name, issue_num)
-
-        # get label info from local file
-        label_columns = self.load_label_columns()
-        label_names = label_columns['labels']
-        label_thresholds = label_columns['probability_thresholds']
-
-        # check thresholds to get labels that need to be predicted
-        predictions = {'labels': [], 'probabilities': []}
-        for i in range(len(label_probabilities)):
-            # if the threshold of any label is None, just ignore it
-            # because the label does not meet both of precision & recall thresholds
-            if label_thresholds[i] and label_probabilities[i] >= label_thresholds[i]:
-                predictions['labels'].append(label_names[i])
-                predictions['probabilities'].append(label_probabilities[i])
-        return predictions, issue_embedding
-
-    def filter_specified_labels(self, repo_owner, repo_name, predictions):
+    # TODO(jlewi): We should refactor this to make it easier to unittest and
+    # add an appropriate unittest.
+    @staticmethod
+    def apply_repo_config(repo_config, repo_owner, repo_name, predictions,
+                          ghapp):
         """
         Only select those labels which are specified by yaml file to be predicted.
         If there is no setting in the yaml file, return all predicted items.
+
+        Also apply any aliases listed in the config file.
+
         Args:
+          repo_config: A dictionary representing the contents of the
+            .github/issue_label_bot.yaml configuration for the repository
           repo_owner: repo owner, str
           repo_name: repo name, str
-          prediction: predicted result from `predict_labels()` function
-                      dict {'labels': list, 'probabilities': list}
+          prediction: dict str label -> probability
         """
-        label_names = []
-        label_probabilities = []
-        # handle the yaml file
-        yaml = get_yaml(owner=repo_owner, repo=repo_name)
+        # Make a copy of the predictions so we don't modify the original.
+        filtered = {}
+        filtered.update(predictions)
+
+        if not repo_config:
+            logging.info("No repo specific config found for "
+                         f"{repo_owner}/{repo_name}")
+            return filtered
+
+        # Alias any labels.
+        if "label-alias" in repo_config:
+            logging.info(f"Applying label aliases for "
+                         f"{repo_owner}/{repo_config}")
+            for old, new in repo_config["label-alias"].items():
+                if old in filtered:
+                    filtered[new] = filtered[old]
+                    del filtered[old]
+
+
         # user may set the labels they want to predict
-        if yaml and 'predicted-labels' in yaml:
-            for name, proba in zip(predictions['labels'], predictions['probabilities']):
-                if name in yaml['predicted-labels']:
-                    label_names.append(name)
-                    label_probabilities.append(proba)
+        if "predicted-labels" in repo_config:
+            allowed = set(repo_config["predicted-labels"])
+            current_labels = filtered.keys()
+            for k in current_labels:
+                if not k in allowed:
+                    del filtered[k]
         else:
-            logging.warning(f'YAML file does not contain `predicted-labels`, '
-                             'bot will predict all labels with enough confidence')
-            # if user do not set `predicted-labels`,
-            # predict all labels with enough confidence
-            label_names = predictions['labels']
-            label_probabilities = predictions['probabilities']
-        return label_names, label_probabilities
+            logging.info(f'{repo_owner}/{repo_name} config file does not contain `predicted-labels`, '
+                         f'bot will predict all labels with enough confidence')
+
+        return filtered
 
     def add_labels_to_issue(self, installation_id, repo_owner, repo_name,
                             issue_num, predictions):
@@ -322,30 +246,50 @@ class Worker:
           repo_owner: repo owner
           repo_name: repo name
           issue_num: issue index
-          prediction: predicted result from `predict_labels()` function
-                      dict {'labels': list, 'probabilities': list}
+          prediction: dict str-> float; dictionary of labels and their predicted
+            probability
         """
-        # take an action if the prediction is confident enough
-        if predictions['labels']:
-            label_names, label_probabilities = self.filter_specified_labels(repo_owner,
-                                                                            repo_name,
-                                                                            predictions)
-        else:
-            label_names = []
 
-        # get the isssue handle
-        issue = get_issue_handle(installation_id, repo_owner, repo_name, issue_num)
+        # TODO(jlewi): Should we cache the GitHub App? What about token
+        # expiration?
+        ghapp = github_app.GitHubApp.create_from_env()
 
+        # handle the yaml file
+        repo_config = github_util.get_yaml(owner=repo_owner, repo=repo_name,
+                                           ghapp=ghapp)
+
+        predictions = self.apply_repo_config(repo_config, repo_owner, repo_name,
+                                             predictions, ghapp)
+
+        if not installation_id:
+            logging.info("No GitHub App Installation Provided Fetching it")
+            installation_id = ghapp.get_installation_id(repo_owner, repo_name)
+        install = ghapp.get_installation(installation_id)
+        issue = install.issue(repo_owner, repo_name, issue_num)
+
+        label_names = predictions.keys()
         if label_names:
             # create message
-            message = """Issue-Label Bot is automatically applying the labels `{labels}` to this issue, with the confidence of {confidence}.
-            Please mark this comment with :thumbsup: or :thumbsdown: to give our bot feedback!
-            Links: [app homepage](https://github.com/marketplace/issue-label-bot), [dashboard]({app_url}data/{repo_owner}/{repo_name}) and [code](https://github.com/hamelsmu/MLapp) for this bot.
-            """.format(labels="`, `".join(label_names),
-                       confidence=", ".join(["{:.2f}".format(p) for p in label_probabilities]),
-                       app_url=self.app_url,
-                       repo_owner=repo_owner,
-                       repo_name=repo_name)
+            # Create a markdown table with probabilities.
+            rows = ["| Label  | Probability |",
+                    "| ------------- | ------------- |"]
+
+            for l, p in predictions.items():
+                rows.append("| {} | {:.2f} |".format(l, p))
+
+            lines = ["Issue-Label Bot is automatically applying the labels:",
+                     ""]
+            lines.extend(rows)
+            lines.append("")
+            lines.append("Please mark this comment with :thumbsup: or :thumbsdown: "
+                         "to give our bot feedback! ")
+            lines.append("Links: [app homepage](https://github.com/marketplace/issue-label-bot), "
+                         "[dashboard]({app_url}data/{repo_owner}/{repo_name}) and "
+                         "[code](https://github.com/hamelsmu/MLapp) for this bot.".format(
+                             app_url=self.app_url,
+                             repo_owner=repo_owner,
+                             repo_name=repo_name))
+            message = "\n".join(lines)
             # label the issue using the GitHub api
             issue.add_labels(*label_names)
             logging.info(f'Add `{"`, `".join(label_names)}` to the issue # {issue_num}')

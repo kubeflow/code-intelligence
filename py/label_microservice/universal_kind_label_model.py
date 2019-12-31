@@ -1,4 +1,4 @@
-
+from collections import defaultdict
 import tensorflow as tf
 from tensorflow.keras import models as keras_models
 from tensorflow.keras import utils as keras_utils
@@ -45,6 +45,13 @@ class UniversalKindLabelModel(models.IssueLabelModel):
 
     self.class_names = class_names
 
+    # set the prediction threshold for everything except for the label question
+    # which has a different threshold.
+    # These values were copied from the original code.
+    # https://github.com/machine-learning-apps/Issue-Label-Bot/blob/536e8bf4928b03d522dd021c0464587747e90a87/flask_app/app.py#L43
+    self._prediction_threshold = defaultdict(lambda: .52)
+    self._prediction_threshold["question"] = .60
+
   def predict_issue_labels(self,  title:str, body:str):
     """
     Get probabilities for the each class.
@@ -76,4 +83,11 @@ class UniversalKindLabelModel(models.IssueLabelModel):
     with self._graph.as_default():
       probs = self.model.predict(x=[vec_body, vec_title]).tolist()[0]
 
-    return {k:v for k,v in zip(self.class_names, probs)}
+    results = {}
+
+    for label, p in zip(self.class_names, probs):
+      if p < self._prediction_threshold[label]:
+        continue
+      results[label] = p
+
+    return results
