@@ -10,22 +10,30 @@ This is currently running on a GKE cluster.
 There is a dedicated instance running in
 
 * **GCP project**: issue-label-bot-dev
-* **cluster**: github-api-cluster
-* **namespace**: issuefeat
+* **cluster**: issue-label-bot
+* **namespace**: label-bot-prod
+
+
+See [kubeflow/code-intelligence#70](https://github.com/kubeflow/code-intelligence/issues/70) for a log of how it was setup.
 
 Deploying it
+
+1. Use skaffold to build a new image.
+
+   ```
+   skaffold build
+   ```
+
+1. Edit the image
+
+   ```
+   cd deployment/overlays/prod
+   kustomize edit set image gcr.io/issue-label-bot-dev/issue-embedding=gcr.io/issue-label-bot-dev/issue-embedding:${TAG}@${SHA}
+   ```
 
 1. Create the deployment
 
    ```
-   kustomize build deployment/overlays/dev | kubectl apply -f -
+   cd Label_Microservice/deployment/overlays/prod
+   kustomize build | kubectl apply -f -
    ```
-
-   * TODO(jlewi): We should probably define suitable prod and possibly staging environments as well
-
-1. You can also follow the [developer_guide.md](../developer_guide.md) to deploy it using skaffold
-
-1. TODO(jlewi): Add instructions for how to build and update the images; one way to do this would be to use
-   `skaffold build` followed by `kustomize edit`
-
-   * We may need/want to use skaffold profiles to define GCR buckets corresponding to dev, staging, and prod

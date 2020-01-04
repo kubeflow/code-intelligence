@@ -1,72 +1,37 @@
-# borrowed from hamelsmu/ml-gpu-lite
+# Dockerfile for prediction workers
+FROM tensorflow/tensorflow:1.15.0-py3
 
-FROM tensorflow/tensorflow:latest-gpu-py3
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
-RUN add-apt-repository -y ppa:git-core/ppa
-RUN add-apt-repository -y ppa:jonathonf/python-3.6
-
-RUN apt-get update --fix-missing && apt-get install -y wget bzip2 ca-certificates \
-    build-essential \
-    byobu \
-    ca-certificates \
-    git-core git \
-    htop \
-    libglib2.0-0 \
-    libjpeg-dev \
-    libpng-dev \
-    libxext6 \
-    libsm6 \
-    libxrender1 \
-    libcupti-dev \
-    openssh-server \
-    python3.6 \
-    python3.6-dev \
-    software-properties-common \
-    vim \
-    && \
-apt-get clean && \
-rm -rf /var/lib/apt/lists/*
-
-RUN apt-get -y update
-
-#  Setup Python 3.6 (Need for other dependencies)
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1
-RUN apt-get install -y python3-setuptools
-RUN easy_install pip
-RUN pip install --upgrade pip
-
-# Fastai dependencies
-RUN pip install torch_nightly -f https://download.pytorch.org/whl/nightly/cu92/torch_nightly.html
-
 # install python packages
-COPY Label_Microservice/requirements.txt .
-RUN pip --no-cache-dir install -r requirements.txt
-
-#For Fairseq-py
-ENV NVIDIA_VISIBLE_DEVICES all
-ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
-ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64
-
-# Open Ports for TensorBoard, Jupyter, and SSH
-EXPOSE 6006
-EXPOSE 7654
-EXPOSE 22
-
-#Setup File System
-RUN mkdir ds
-ENV HOME=/ds
-ENV SHELL=/bin/bash
-VOLUME /ds
-WORKDIR /ds
+COPY Label_Microservice/deployment/requirements.worker.txt .
+COPY Label_Microservice/deployment/requirements.universal_model.txt .
+RUN pip --no-cache-dir install -r requirements.worker.txt
+RUN pip --no-cache-dir install -r requirements.universal_model.txt
 
 # Copy needed files for worker
-COPY py/label_microservice/worker.py /ds/worker.py
 COPY py /py
 ENV PYTHONPATH=/py
 
+# Skaffold hack
+# Skaffold infers the files to watch for changes by parsing the dockerfile 
+# and looking for COPY statements. Skaffold v1.1.0 doesn't appear to detect
+# changes to directories so we add explicit COPY statements for the files that
+# we want to retrigger skaffold on when they are modified
+# TODO(jlewi): Need to try removing this. I think the problem might have been I was out of
+# notify resources on my local machine. When I switched skaffold to use --notify=polling
+# it started to detect changes.
+COPY py/label_microservice/mlp.py /py/label_microservice/mlp.py
+COPY py/label_microservice/models.py /py/label_microservice/models.py
+COPY py/label_microservice/repo_config.py /py/label_microservice/repo_config.py
+COPY py/label_microservice/repo_specific_model.py /py/label_microservice/repo_specific_model.py
+COPY py/label_microservice/universal_kind_label_model.py /py/label_microservice/universal_kind_label_model.py
+COPY py/label_microservice/worker.py /py/label_microservice/worker.py
+
 # Add helper files
+# TODO(jlewi): What is this for?
 RUN pip freeze > container_requirements.txt
 
 # Run the shell
+# TODO(jlewi): Why is the default command tail?
 CMD [ "/bin/bash", "-c", "tail -f /dev/null" ]

@@ -2,10 +2,10 @@
 apiVersion: skaffold/v2alpha1
 kind: Config
 metadata:
-  name: issue-embedding-microservice
+  name: label-microservice
 build:
   artifacts:
-  - image: gcr.io/issue-label-bot-dev/issue-embedding
+  - image: gcr.io/issue-label-bot-dev/bot-worker
     # Set the context to the root directory. 
     # All paths in the Dockerfile should be relative to this one.
     context: ..
@@ -14,20 +14,19 @@ build:
     # TODO(https://github.com/GoogleContainerTools/skaffold/issues/3448): We use manual sync
     # because inferred sync doesn't work
     #
-    # TODO(https://github.com/kubeflow/code-intelligence/issues/78): 
-    # To use skaffold filesync
-    # I think we will need to use a custome program to autorestart the server on file changes
-    # because we can't run flask in debug mode and rely on its auto-loader..
-    # We created autorestart for that so we just have to use it.
-    #sync:
-    #    manual:
-    #    - src: 'py/code_intelligence/*.py'
-    #      dest: '/'
-    #    - src: 'Issue_Embeddings/flask_app/*.py'
-    #      strip: 'Issue_Embeddings'
-    #      dest: '/'
+    # This only works if we autorestart the program on changes.
+    #
+    # Important: Make sure you current context has the namespace
+    # set to the namespace where your pods are deployed otherwise
+    # the sync doesn't appear to work.
+    sync:
+        manual:
+        - src: 'py/code_intelligence/*.py'
+          dest: '/'
+        - src: 'py/label_microservice/*.py'
+          dest: '/'
     kaniko:
-      dockerfile: Issue_Embeddings/deployment/Dockerfile
+      dockerfile: Label_Microservice/deployment/Dockerfile.worker
       buildContext:
         gcsBucket: issue-label-bot-dev_skaffold-kaniko
       env: 
@@ -36,8 +35,7 @@ build:
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: /secret/user-gcp-sa.json
       cache: {}
-  cluster:
-    # pullSecret can be set to a local file from which the pull secret should be created.
+  cluster:    
     pullSecretName: user-gcp-sa
     # Build in the kaniko namespace because we need to disable ISTIO sidecar injection
     # see  GoogleContainerTools/skaffold#3442

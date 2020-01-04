@@ -5,6 +5,13 @@
 Authors: Chun-Hsiang Wang ([chunhsiang@google.com](mailto:chunhsiang@google.com))
 
 
+**This doc is no longer up to date** see:
+
+* [kubeflow/code-intelligence#87](https://github.com/kubeflow/code-intelligence/issues/87) Create a separate staging process for the
+  front end and backends
+* [kubeflow/code-intelligence#70](https://github.com/kubeflow/code-intelligence/issues/70) Issue about updating the microservices to
+  handle ensemble models
+
 # TL;DR
 
 We have an [existing issue label bot](https://github.com/machine-learning-apps/Issue-Label-Bot) in production, which contains a flask app to handle GitHub payloads. Then, we create a [new microservice](https://github.com/kubeflow/code-intelligence/tree/master/Label_Microservice) to receive some traffic from the flask app and predict repository specific labels for those events. We have a [rollout design](https://docs.google.com/document/d/1HoY7rNGlDj_W5U74Ax8DC4umqz5wrW4ef4SB64N3vN4/edit#heading=h.c5xb2gcly2x8) for our new bot. Before the rollout of our new bot, we would like to set up a staging cluster including all microservices, like the flask app and workers for repo-specific label prediction, to confirm whether the whole procedures work well while processing real GitHub payloads.
@@ -73,13 +80,19 @@ namespace/mlapp created
 
 For testing, you need to use another GitHub app to run as the bot in production. You need to register a testing GitHub app by following steps 1-4 of [this document](https://developer.github.com/apps/quickstart-guides/setting-up-your-development-environment/). Remember to store your ``APP_ID``, ``PRIVATE_KEY`` and ``WEBHOOK_SECRET``. And you will need to update the ``Webhook URL`` to be the flask app url later.
 
-Now, I have created a GitHub app in my GitHub account. The needed environment variables for testing the bot are stored in Google Cloud Storage in the GCP project ``github-probots`` (same as the secret used in production) and can be retrieved by the command.
+As documented in kubeflow/code-intelligence#84 we have created the 
+**kf-label-bot-dev** GitHub App to be used for development with Kubeflow.
+The PEM key for this bot is stored at `gs://issue-label-bot-dev_secrets/kf-label-bot-dev.2019-12-30.private-key.pem`.
 
+To create the secret in your dev cluster you can use the script 
+`create_secrets.py`.
 
 ```
-gsutil cp gs://github-probots_secrets/ml-app-inference-secret-test.yaml /tmp
+cd Label_Microservice/scripts
+python3 create_secrets.py create-dev
 ```
 
+You 
 
 You should encode the ``APP_ID``, ``PRIVATE_KEY`` and ``WEBHOOK_SECRET`` with base64 encoder and modify the values in the file ``/tmp/ml-app-inference-secret-test.yaml`` if you would like to use your GitHub app to test the services. 
 

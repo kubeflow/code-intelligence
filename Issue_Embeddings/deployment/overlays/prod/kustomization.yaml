@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+commonLabels:
+  environment: prod
+namespace: label-bot-prod
+patchesStrategicMerge:
+- deployments.yaml
+resources:
+- ../../base
+images:
+- digest: sha256:292e6af3214b3a3dc499fe08a1873b986b77ba9e201ca57afd9d6736f513fe40
+  name: gcr.io/issue-label-bot-dev/issue-embedding
+  newName: gcr.io/issue-label-bot-dev/issue-embedding:3191fea

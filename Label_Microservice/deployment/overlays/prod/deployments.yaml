@@ -1,0 +1,28 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+    name: worker
+spec:
+    # Use a single replica for development
+    replicas: 5
+    template:          
+      spec:
+        containers:
+        - name: app
+          env:
+            # The pubsub topic is determined by the front end
+            # for the issue-label-bot app
+            # https://github.com/machine-learning-apps/Issue-Label-Bot/blob/26d8fb65be3b39de244c4be9e32b2838111dac10/deployment/deployments.yaml#L49
+            - name: PROJECT
+              value: issue-label-bot-dev
+            - name: ISSUE_EVENT_TOPIC
+              value: "event_queue"
+            - name: ISSUE_EVENT_SUBSCRIPTION
+              value: "label_bot_prod"
+            # The values for issue-label-bot. This is the production version
+            # that is in marketplace.
+            - name: GITHUB_APP_ID
+              value: "27079"
+            - name: GITHUB_APP_PEM_KEY
+              value: /var/secrets/github/issue-label-bot-github-app.private-key.pem
+

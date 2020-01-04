@@ -10,43 +10,32 @@ This is currently running on a GKE cluster.
 There is a dedicated instance running in
 
 * **GCP project**: issue-label-bot-dev
-* **cluster**: workers
+* **cluster**: issue-label-bot
+
+See [kubeflow/code-intelligence#70](https://github.com/kubeflow/code-intelligence/issues/70) for a log of how it was setup.
 
 Deploying it
+
+1. Use skaffold to build a new image.
+
+   ```
+   skaffold build
+   ```
+
+1. Edit the image
+
+   ```
+   cd deployment/overlays/prod
+   kustomize edit set image gcr.io/issue-label-bot-dev/bot-worker=gcr.io/issue-label-bot-dev/bot-worker:${TAG}@${SHA}
+   ```
 
 1. Create the deployment
 
    ```
-   kubectl apply -f deployments.yaml  
+   cd Label_Microservice/deployment/overlays/prod
+   kustomize build | kubectl apply -f -
    ```
 
-1. Create the secret
+## Staging/Dev
 
-   ```
-   gsutil cp gs://github-probots_secrets/ml-app-inference-secret.yaml /tmp
-   kubectl apply -f /tmp/ml-app-inference-secret.yaml
-   ```
-
-
-## Testing
-
-There is a staging cluster running in
-
-* **GCP project**: issue-label-bot-dev
-* **cluster**: github-mlapp-test
-
-Deploying it
-
-1. Create the deployment
-
-   ```
-   kubectl apply -f deployments-test.yaml  
-   ```
-
-1. Create the secret
-
-   ```
-   gsutil cp gs://github-probots_secrets/ml-app-inference-secret-test.yaml /tmp
-   kubectl apply -f /tmp/ml-app-inference-secret-test.yaml
-   ```
-
+There is a staging/dev instance running in a different namespace
