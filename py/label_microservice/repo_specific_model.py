@@ -78,7 +78,8 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
                  f"{model.config.model_gcs_path}")
     logging.info(f"Loaded model config gs://{model.config.model_bucket_name}/"
                  f"{model.config.labels_gcs_path}")
-    logging.info(f"Model label thresholds {model._label_thresholds}")
+    logging.info(f"Model label thresholds {model._label_thresholds}",
+                 extra={"thresholds": model._label_thresholds})
     if not embedding_api_endpoint:
       embedding_api_endpoint = DEFAULT_EMBEDDING_API_ENDPOINT
 
@@ -86,13 +87,14 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
     logging.info(f"Issue embedding service set to {model._embedding_api_endpoint}")
     return model
 
-  def predict_issue_labels(self, title:str , text:str):
+  def predict_issue_labels(self, title:str , text:str, context=None):
     """Return a dictionary of label probabilities.
 
     Args:
       title: The title for the issue
       text: The text for the issue
-
+      context: (Optional) dictionary of information like the issue. Used
+        for logging
     Return
     ------
     dict: Dictionary of label to probability of that label for the
@@ -100,9 +102,12 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
     """
     issue_embedding = self._get_issue_embedding(title, text)
 
+    if not context:
+      context = {}
+
     # if not retrieve the embedding, ignore to predict it
     if issue_embedding is None:
-      logging.error("No embeddings returned for issue")
+      logging.error("No embeddings returned for issue", extra=context)
       return {}
 
     # Predict probabilities expects a list of lists; i.e a 2-d matrix where
@@ -124,7 +129,10 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
     # We should use some sort of context to pass along information
     # about the issue so we can log what issue these predictions pertain
     # to.
-    logging.info(f"Unfiltered predictions: {predictions}")
+    extra = {}
+    extra.update(context)
+    extra["predictions"] = predictions
+    logging.info(f"Unfiltered predictions: {predictions}", extra=extra)
 
     labels_to_remove = []
     for label, probability in predictions.items():
@@ -139,7 +147,8 @@ class RepoSpecificLabelModel(models.IssueLabelModel):
 
     for l in labels_to_remove:
       del predictions[l]
-    logging.info(f"Labels below precision and recall {labels_to_remove}")
+    logging.info(f"Labels below precision and recall {labels_to_remove}",
+                 extra=context)
     return predictions
 
   def _get_issue_embedding(self, title, text):
