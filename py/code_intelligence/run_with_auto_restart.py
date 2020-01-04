@@ -70,6 +70,11 @@ if __name__ == "__main__":
   observer.start()
   try:
     while True:
+      if event_handler._p:
+        if event_handler._p.poll() is not None:
+          # TODO(jlewi): would it be better to exit to force a container restart
+          logging.info("Process has terminated restarting it")
+          event_handler.restart()
       time.sleep(1)
   except KeyboardInterrupt:
     observer.stop()

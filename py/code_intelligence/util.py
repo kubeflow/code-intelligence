@@ -1,6 +1,11 @@
+import datetime
 import logging
 import json
+import pytz
 import re
+
+import json_log_formatter
+
 
 ISSUE_RE = re.compile("([^/]*)/([^#]*)#([0-9]*)")
 
@@ -26,3 +31,25 @@ def parse_issue_spec(issue):
   if not m:
     return None, None, None
   return m.group(1), m.group(2), int(m.group(3))
+
+pacific = pytz.timezone("US/Pacific")
+
+def now():
+  """Return the current time with timezone information."""
+  # see https://julien.danjou.info/python-and-timezones/
+  # Need to attach a time zone
+  return datetime.datetime.now(tz=pacific)
+
+class CustomisedJSONFormatter(json_log_formatter.JSONFormatter):
+  """A custom formatter to produce logs in json format."""
+  def json_record(self, message, extra, record):
+    extra['message'] = message
+
+    extra["filename"] = record.pathname
+    extra["line"] = record.lineno
+    extra["level"] = record.levelname
+    if "time" not in extra:
+      extra["time"] = now().isoformat()
+    extra["thread"] = record.thread
+    extra["thread_name"] = record.threadName
+    return extra

@@ -12,7 +12,7 @@ class CombinedLabelModels(models.IssueLabelModel):
     # A list of models to generate predictions
     self._models = models
 
-  def predict_issue_labels(self, title:str , text:str):
+  def predict_issue_labels(self, title:str , text:str, context=None):
     """Return a dictionary of label probabilities.
 
     Args:
@@ -31,7 +31,7 @@ class CombinedLabelModels(models.IssueLabelModel):
     for i, m in enumerate(self._models):
       logging.info(f"Generating predictions with model {i}")
 
-      latest = m.predict_issue_labels(title, text)
+      latest = m.predict_issue_labels(title, text, context=context)
 
       predictions = self._combine_predictions(predictions, latest)
 

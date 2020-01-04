@@ -55,7 +55,7 @@ class IssueLabelPredictor:
               models=[self._models["universal"], repo_model])
       self._models[_combined_model_name(org, repo)] = combined
 
-  def predict_labels_for_data(self, model_name, title, body):
+  def predict_labels_for_data(self, model_name, title, body, context=None):
     """Generate label predictions for the specified data.
 
     Args:
@@ -71,7 +71,7 @@ class IssueLabelPredictor:
 
     model = self._models[model_name]
     logging.info(f"Generating predictions for title={title} text={body}")
-    predictions = model.predict_issue_labels(title, body)
+    predictions = model.predict_issue_labels(title, body, context=context)
 
     return predictions
 
@@ -110,8 +110,14 @@ class IssueLabelPredictor:
     if not data.get("body"):
       logging.warning(f"Got empty title for {org}/{repo}#{issue_number}")
 
+    context={
+      "repo_owner": org,
+      "repo_name": repo,
+      "issue_num": issue_number,
+    }
+
     predictions = self.predict_labels_for_data(
-      model_name, data.get("title"), data.get("body"))
+      model_name, data.get("title"), data.get("body"), context=context)
 
     return predictions
 

@@ -1,3 +1,5 @@
+import logging
+
 from collections import defaultdict
 import tensorflow as tf
 from tensorflow.keras import models as keras_models
@@ -34,15 +36,10 @@ class UniversalKindLabelModel(models.IssueLabelModel):
     with urlopen(body_pp_url) as f:
         self.body_pp = dpickle.load(f)
 
-    model_path = keras_utils.get_file(fname=model_filename, origin=model_url)
+    self._model_path = keras_utils.get_file(fname=model_filename, origin=model_url)
 
-    # TODO(jlewi): Is this right? Do we want to get the default graph or
-    # create a new graph? What happens when we are loading multiple graphs
-    # at once into memory.
-    self._graph =  tf.Graph()
-    with self._graph.as_default():
-      self.model = keras_models.load_model(model_path)
-
+    self._graph =  None
+    self.model = None
     self.class_names = class_names
 
     # set the prediction threshold for everything except for the label question
@@ -52,7 +49,7 @@ class UniversalKindLabelModel(models.IssueLabelModel):
     self._prediction_threshold = defaultdict(lambda: .52)
     self._prediction_threshold["question"] = .60
 
-  def predict_issue_labels(self,  title:str, body:str):
+  def predict_issue_labels(self,  title:str, body:str, context=None):
     """
     Get probabilities for the each class.
 
@@ -75,19 +72,37 @@ class UniversalKindLabelModel(models.IssueLabelModel):
      'feature': 0.6401631832122803,
      'question': 0.2761166989803314}
     """
+    if not context:
+      context = {}
     #transform raw text into array of ints
     vec_body = self.body_pp.transform([body])
     vec_title = self.title_pp.transform([title])
 
     # make predictions with the model
+    # TODO(jlewi): Is this right? Do we want to get the default graph or
+    # create a new graph? What happens when we are loading multiple graphs
+    # at once into memory.
+    # TODO(https://github.com/kubeflow/code-intelligence/issues/89): As
+    # hack for threading issues reload the model on each predict call.
+    self._graph =  tf.Graph()
     with self._graph.as_default():
+      self.model = keras_models.load_model(self._model_path)
       probs = self.model.predict(x=[vec_body, vec_title]).tolist()[0]
 
     results = {}
 
-    for label, p in zip(self.class_names, probs):
+    raw = dict(zip(self.class_names, probs))
+    # Lets log the full probabilities
+    extra = {
+      "predictions": raw,
+    }
+    extra.update(context)
+
+    for label, p in raw.items():
       if p < self._prediction_threshold[label]:
         continue
       results[label] = p
 
+    extra["labels"] = list(results.keys())
+    logging.info("Universal model predictions.", extra=extra)
     return results

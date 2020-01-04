@@ -1,8 +1,9 @@
 import os
 import fire
-import requests
+import json
 import traceback
-import yaml
+
+from oauth2client.client import GoogleCredentials
 from google.cloud import pubsub
 import logging
 from label_microservice.repo_config import RepoConfig
@@ -10,7 +11,14 @@ from code_intelligence import github_app
 from code_intelligence import github_util
 from code_intelligence.pubsub_util import check_subscription_name_exists
 from code_intelligence.pubsub_util import create_subscription_if_not_exists
+from code_intelligence import util
 from label_microservice import issue_label_predictor
+from tensorflow import errors as tf_errors
+import retrying
+import subprocess
+import sys
+
+DEFAULT_APP_URL = "https://github.com/marketplace/issue-label-bot"
 
 class Worker:
     """
@@ -38,7 +46,8 @@ class Worker:
         self.topic_name = topic_name
         self.subscription_name = subscription_name
 
-        self.app_url = os.environ['APP_URL']
+        # This is only used in the issue comment.
+        self.app_url = os.getenv("APP_URL", DEFAULT_APP_URL)
 
         # init pubsub subscription
         self.create_subscription_if_not_exists()
@@ -91,6 +100,7 @@ class Worker:
         it will call the `callback` function to do label
         prediction and add labels to the issue.
         """
+        wait_for_gcp_account()
         subscriber = pubsub.SubscriberClient()
         subscription_path = subscriber.subscription_path(self.project_id,
                                                          self.subscription_name)
@@ -127,6 +137,10 @@ class Worker:
             # https://github.com/machine-learning-apps/Issue-Label-Bot/blob/26d8fb65be3b39de244c4be9e32b2838111dac10/flask_app/forward_utils.py#L57
             # The front end does have access to the title and body
             # but its not being sent right now.
+            # TODO(jlewi): It looks like the log statement ends up generating
+            # multiple entries in stackdriver; i.e. the payload of the message
+            # causes the message to be spread across multiple lines. That's
+            # Not what we want.
             logging.info(f"Recieved message {message}")
             installation_id = message.attributes['installation_id']
             repo_owner = message.attributes['repo_owner']
@@ -153,7 +167,23 @@ class Worker:
                     'issue_num': int(issue_num),
                     'predictions': predictions,
                 }
-                logging.info(log_dict)
+                logging.info("Add labels to issue.", extra=log_dict)
+
+            # TODO(jlewi): I observed cases where some of the initial inferences
+            # would succeed but on subsequent ones it started failing
+            # see: https://github.com/kubeflow/code-intelligence/issues/70#issuecomment-570491289
+            # Restarting is a bit of a hack. We should try to figure out
+            # why its happening and fix it.
+            except tf_errors.FailedPreconditionError as e:
+                logging.fatal(f"Exception occurred while handling issue "
+                              f"{repo_owner}/{repo_name}#{issue_num}. \n"
+                              f"Exception: {e}\n"
+                              f"{traceback.format_exc()}\n."
+                              f"This usually indicates an issue with "
+                              f"trying to use the model in a thread different "
+                              f"from the one it was created in. "
+                              f"The program will restart to try to recover.")
+                sys.exit(1)
 
             #TODO(jlewi): We should catch a more narrow exception.
             # On exception if we don't ack the message then we risk problems
@@ -304,12 +334,42 @@ class Worker:
         # make a comment using the GitHub api
         comment = issue.create_comment(message)
 
+class NoGCPCredentials(Exception):
+    pass
+
+def retry_if_no_credentials(exception):
+    """Return True if we should retry, False otherwise"""
+    return isinstance(exception, NoGCPCredentials)
+
+# Use exponential backoff to ensure we don't overwhelm the metadata servers
+@retrying.retry(wait_exponential_multiplier=1000, wait_exponential_max=20000,
+                stop_max_delay=3*60*1000,
+                retry_on_exception=retry_if_no_credentials)
+def wait_for_gcp_account():
+    """Wait until we are able to get a service account.
+
+    see https://github.com/kubeflow/code-intelligence/issues/88
+    """
+    # TODO(jlewi): Should we use the python library instead of gcloud?
+    logging.info("Checking for GCP credentials")
+    credentials = GoogleCredentials.get_application_default()
+
+    if not credentials:
+        message = (f"Could not get application default credentials")
+        logging.error(message)
+        raise NoGCPCredentials(message)
+    else:
+        logging.info(f"Got application default credentials")
+
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO,
-                        format=('%(levelname)s|%(asctime)s'
-                                '|%(message)s|%(pathname)s|%(lineno)d|'),
-                        datefmt='%Y-%m-%dT%H:%M:%S',
-                        )
+    # Emit logs in json format. This way we can do structured logging
+    # and we can query extra fields easily in stackdriver and bigquery.
+    json_handler = logging.StreamHandler()
+    json_handler.setFormatter(util.CustomisedJSONFormatter())
+
+    logger = logging.getLogger()
+    logger.addHandler(json_handler)
+    logger.setLevel(logging.INFO)
 
     fire.Fire(Worker)
