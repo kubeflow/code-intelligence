@@ -1,0 +1,51 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+    name: worker
+spec:
+    replicas: 5
+    template:
+      metadata:
+        labels:
+          app: worker          
+      spec:
+        volumes:
+        - name: github-app
+          secret:
+            secretName: github-app
+        containers:
+        - name: app
+          image: gcr.io/issue-label-bot-dev/bot-worker
+          command: 
+            - python3
+            - -m 
+            - label_microservice.worker
+            - subscribe_from_env
+          resources:
+            requests:
+              memory: "4Gi"
+              cpu: "4"                      
+          volumeMounts:
+            - name: github-app
+              mountPath: /var/secrets/github
+          env:
+            - name: PORT
+              value: "80"
+            # This should be the name of the in-cluster K8s service running issue embeddings
+            - name: ISSUE_EMBEDDING_SERVICE
+              value: "http://issue-embedding-server"
+            - name: PROJECT
+              value: issue-label-bot-dev      
+            # The values for the Kubeflow kf-label-bot-dev application
+            # See kubeflow/code-intelligence#84
+            - name: GITHUB_APP_ID
+              value: "50112"         
+            - name: GITHUB_APP_PEM_KEY
+              value: /var/secrets/github/kf-label-bot-dev.private-key.pem
+            # TODO(jlewi):Not needed because we use workload identity
+            #- name: GOOGLE_APPLICATION_CREDENTIALS
+            #  value: /var/secrets/google/user-gcp-sa.json
+        restartPolicy: Always
+        # We need to set a service account corresponding to workload
+        # identity
+        serviceAccountName: default-editor

@@ -1,0 +1,41 @@
+# Requirements for the prediction worker
+dill==0.2.9
+# TODO(jlewi): What code is using fastai?
+fastai==1.0.55
+fastprogress==0.1.21
+Flask==1.1.1
+fire==0.1.3
+future==0.17.1
+github3.py==1.3.0
+google-api-core==1.14.2
+google-api-python-client==1.7.10
+google-auth==1.6.3
+google-auth-httplib2==0.0.3
+#google-cloud-bigquery==1.17.0
+google-cloud-core==1.0.3
+google-cloud-pubsub==0.45.0
+google-cloud-storage==1.17.0
+google-resumable-media==0.3.2
+googleapis-common-protos==1.6.0
+grpc-google-iam-v1==0.12.3
+grpcio==1.22.0
+Jinja2==2.10.1
+JSON-log-formatter==0.2.0
+jwcrypto==0.6.0
+# TODO(jlewi): Is the JWT module replaced by PyJWT?
+jwt==0.6.1
+#mdparse and mistune are used to parse github issues
+mdparse==0.13
+mistune==0.8.4
+numpy==1.16.4
+oauth2client==4.1.3
+oauthlib==3.0.2
+passlib==1.7.1
+PyJWT==1.7.1
+requests==2.22.0
+requests-oauthlib==1.2.0
+requests-toolbelt==0.9.1
+retrying==1.3.3
+scikit-learn==0.21.2
+scipy==1.3.0
+watchdog==0.9.0

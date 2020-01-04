@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: server
+spec:
+    # Use a single replica for development
+    replicas: 3
+    template:
+      spec:
+        containers:
+        - name: app    

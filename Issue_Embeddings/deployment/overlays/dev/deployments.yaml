@@ -10,12 +10,6 @@ spec:
         containers:
         - name: app
           env:
-            - name: PROJECT
-              value: issue-label-bot-dev
-            - name: ISSUE_EVENT_TOPIC
-              value: "TEST_event_queue"
-            - name: ISSUE_EVENT_SUBSCRIPTION
-              value: "TEST_subscription_for_event_queue"
             # Flask environment variables
             # TODO: Unfortunately it looks like if we enable debugging we hit the following error
             # https://stackoverflow.com/questions/53522052/flask-app-valueerror-signal-only-works-in-main-thread
