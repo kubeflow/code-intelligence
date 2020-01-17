@@ -8,6 +8,6 @@ patchesStrategicMerge:
 resources:
 - ../../base
 images:
-- digest: sha256:cb2b2e604d4056b78ecd51d7113de04ebfa60e542310265b3871e7873417e34a
-  name: gcr.io/issue-label-bot-dev/bot-worker
-  newName: gcr.io/issue-label-bot-dev/bot-worker:3a82547
+- name: gcr.io/issue-label-bot-dev/bot-worker
+  newName: gcr.io/issue-label-bot-dev/bot-worker
+  newTag: 57c6d26

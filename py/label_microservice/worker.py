@@ -20,6 +20,8 @@ import sys
 
 DEFAULT_APP_URL = "https://github.com/marketplace/issue-label-bot"
 
+DEFAULT_APP_URL = "https://github.com/marketplace/issue-label-bot"
+
 class Worker:
     """
     The worker class aims to do label prediction for issues from github repos.
@@ -182,6 +184,23 @@ class Worker:
                               f"This usually indicates an issue with "
                               f"trying to use the model in a thread different "
                               f"from the one it was created in. "
+                              f"The program will restart to try to recover.",
+                              extra=log_dict)
+                sys.exit(1)
+
+            # TODO(jlewi): I observed cases where some of the initial inferences
+            # would succeed but on subsequent ones it started failing
+            # see: https://github.com/kubeflow/code-intelligence/issues/70#issuecomment-570491289
+            # Restarting is a bit of a hack. We should try to figure out
+            # why its happening and fix it.
+            except tf_errors.FailedPreconditionError as e:
+                logging.fatal(f"Exception occurred while handling issue "
+                              f"{repo_owner}/{repo_name}#{issue_num}. \n"
+                              f"Exception: {e}\n"
+                              f"{traceback.format_exc()}\n."
+                              f"This usually indicates an issue with "
+                              f"trying to use the model in a thread different "
+                              f"from the one it was created in. "
                               f"The program will restart to try to recover.")
                 sys.exit(1)
 
@@ -196,7 +215,7 @@ class Worker:
                 logging.error(f"Exception occurred while handling issue "
                               f"{repo_owner}/{repo_name}#{issue_num}. \n"
                               f"Exception: {e}\n"
-                              f"{traceback.format_exc()}")
+                              f"{traceback.format_exc()}", extra=log_dict)
 
             # acknowledge the message, or pubsub will repeatedly attempt to deliver it
             message.ack()
