@@ -10,4 +10,4 @@ resources:
 images:
 - name: gcr.io/issue-label-bot-dev/bot-worker
   newName: gcr.io/issue-label-bot-dev/bot-worker
-  newTag: 8472f90
+  newTag: 79cd85a-dirty
