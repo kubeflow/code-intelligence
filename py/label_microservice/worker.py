@@ -157,7 +157,6 @@ class Worker:
                 'repo_owner': repo_owner,
                 'repo_name': repo_name,
                 'issue_num': int(issue_num),
-                'predictions': predictions,
             }
 
             data = {
@@ -167,6 +166,7 @@ class Worker:
             }
             try:
                 predictions = self._predictor.predict(data)
+                log_dict['predictions'] = predictions
                 self.add_labels_to_issue(installation_id, repo_owner, repo_name,
                                          issue_num, predictions)
 
