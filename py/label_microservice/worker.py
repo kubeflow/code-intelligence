@@ -149,6 +149,17 @@ class Worker:
             repo_name = message.attributes['repo_name']
             issue_num = message.attributes['issue_num']
 
+            # log the prediction, which will be used to track the performance
+            # TODO(https://github.com/kubeflow/code-intelligence/issues/79)
+            # Ensure we capture the information needed to measure performance
+            # in stackdriver
+            log_dict = {
+                'repo_owner': repo_owner,
+                'repo_name': repo_name,
+                'issue_num': int(issue_num),
+                'predictions': predictions,
+            }
+
             data = {
                 "repo_owner": repo_owner,
                 "repo_name": repo_name,
@@ -159,16 +170,6 @@ class Worker:
                 self.add_labels_to_issue(installation_id, repo_owner, repo_name,
                                          issue_num, predictions)
 
-                # log the prediction, which will be used to track the performance
-                # TODO(https://github.com/kubeflow/code-intelligence/issues/79)
-                # Ensure we capture the information needed to measure performance
-                # in stackdriver
-                log_dict = {
-                    'repo_owner': repo_owner,
-                    'repo_name': repo_name,
-                    'issue_num': int(issue_num),
-                    'predictions': predictions,
-                }
                 logging.info("Add labels to issue.", extra=log_dict)
 
             # TODO(jlewi): I observed cases where some of the initial inferences
