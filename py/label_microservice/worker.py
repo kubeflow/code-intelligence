@@ -20,6 +20,8 @@ import sys
 
 DEFAULT_APP_URL = "https://github.com/marketplace/issue-label-bot"
 
+DEFAULT_APP_URL = "https://github.com/marketplace/issue-label-bot"
+
 class Worker:
     """
     The worker class aims to do label prediction for issues from github repos.
@@ -147,6 +149,16 @@ class Worker:
             repo_name = message.attributes['repo_name']
             issue_num = message.attributes['issue_num']
 
+            # log the prediction, which will be used to track the performance
+            # TODO(https://github.com/kubeflow/code-intelligence/issues/79)
+            # Ensure we capture the information needed to measure performance
+            # in stackdriver
+            log_dict = {
+                'repo_owner': repo_owner,
+                'repo_name': repo_name,
+                'issue_num': int(issue_num),
+            }
+
             data = {
                 "repo_owner": repo_owner,
                 "repo_name": repo_name,
@@ -154,20 +166,28 @@ class Worker:
             }
             try:
                 predictions = self._predictor.predict(data)
+                log_dict['predictions'] = predictions
                 self.add_labels_to_issue(installation_id, repo_owner, repo_name,
                                          issue_num, predictions)
 
-                # log the prediction, which will be used to track the performance
-                # TODO(https://github.com/kubeflow/code-intelligence/issues/79)
-                # Ensure we capture the information needed to measure performance
-                # in stackdriver
-                log_dict = {
-                    'repo_owner': repo_owner,
-                    'repo_name': repo_name,
-                    'issue_num': int(issue_num),
-                    'predictions': predictions,
-                }
                 logging.info("Add labels to issue.", extra=log_dict)
+
+            # TODO(jlewi): I observed cases where some of the initial inferences
+            # would succeed but on subsequent ones it started failing
+            # see: https://github.com/kubeflow/code-intelligence/issues/70#issuecomment-570491289
+            # Restarting is a bit of a hack. We should try to figure out
+            # why its happening and fix it.
+            except tf_errors.FailedPreconditionError as e:
+                logging.fatal(f"Exception occurred while handling issue "
+                              f"{repo_owner}/{repo_name}#{issue_num}. \n"
+                              f"Exception: {e}\n"
+                              f"{traceback.format_exc()}\n."
+                              f"This usually indicates an issue with "
+                              f"trying to use the model in a thread different "
+                              f"from the one it was created in. "
+                              f"The program will restart to try to recover.",
+                              extra=log_dict)
+                sys.exit(1)
 
             # TODO(jlewi): I observed cases where some of the initial inferences
             # would succeed but on subsequent ones it started failing
@@ -196,7 +216,7 @@ class Worker:
                 logging.error(f"Exception occurred while handling issue "
                               f"{repo_owner}/{repo_name}#{issue_num}. \n"
                               f"Exception: {e}\n"
-                              f"{traceback.format_exc()}")
+                              f"{traceback.format_exc()}", extra=log_dict)
 
             # acknowledge the message, or pubsub will repeatedly attempt to deliver it
             message.ack()
