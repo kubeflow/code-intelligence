@@ -24,7 +24,7 @@ class GraphQLClient(object):
       # INPUT_ prefix is used when this is run inside the context of a GitHub Action
       TRIAGE_TOKEN = os.getenv("INPUT_GITHUB_PERSONAL_ACCESS_TOKEN",
                                os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN"))
-      GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+      GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
 
       if TRIAGE_TOKEN or GITHUB_TOKEN :
         logging.warning(f"GraphQLClient is defaulting to "
@@ -66,6 +66,7 @@ class GraphQLClient(object):
     if request.status_code == 200:
       return request.json()
     else:
+
       raise Exception("Query failed to run by returning code of {}. {}".format(
         request.status_code, query))
 
