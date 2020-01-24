@@ -340,9 +340,9 @@ class GitHubAppTokenGenerator:
         if now > self._token.expires_at:
             logging.info(f"Refreshing access token")
 
-            owner, name = repo.split("/")
+            owner, name = self._repo.split("/")
 
-            installation_id = self._app.get_installation_id(owner, repo)
+            installation_id = self._app.get_installation_id(owner, name)
 
             url = f'https://api.github.com/app/installations/{installation_id}/access_tokens'
             headers = {'Authorization': f'Bearer {self._app.get_jwt().decode()}',
@@ -352,8 +352,9 @@ class GitHubAppTokenGenerator:
             if response.status_code != 201:
                 raise Exception(f'Status code : {response.status_code}, {response.json()}')
 
-            token = response.json()['token']
-            expires_at = date_parser.parse(token['expires_at'])
+            response_json = response.json()
+            token = response_json['token']
+            expires_at = date_parser.parse(response_json['expires_at'])
             self._token = GITHUB_ACCESS_TOKEN(token, expires_at)
 
         return self._token
@@ -361,7 +362,8 @@ class GitHubAppTokenGenerator:
     def auth_headers(self):
         """Generate headers to attach to GitHub API requests."""
         headers ={
-            'Authorization': f'token {self.token()}',
+            'Authorization': f'token {self.token().token}',
             'Accept': 'application/vnd.github.machine-man-preview+json'}
+        return headers
 
 
