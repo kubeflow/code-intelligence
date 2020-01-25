@@ -103,7 +103,7 @@ class GitHubApp(GitHub):
         return response.json()['id']
 
     def get_installation_access_token(self, installation_id):
-        "Get the installation access token for debugging."
+        "Get the installation access token."
 
         url = f'https://api.github.com/app/installations/{installation_id}/access_tokens'
         headers = {'Authorization': f'Bearer {self.get_jwt().decode()}',
