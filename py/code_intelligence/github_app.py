@@ -104,10 +104,9 @@ class GitHubApp(GitHub):
         return next(test_repo.issues())
 
     def get_jwt(self):
-        """
-        This is needed to retrieve the installation access token (for debugging).
+        """This is needed to retrieve the installation access token.
 
-        Useful for debugging purposes.  Must call .decode() on returned object to get string.
+        Must call .decode() on returned object to get string.
         """
         now = self._now_int()
         payload = {
@@ -177,8 +176,6 @@ class GitHubApp(GitHub):
 
     def get_all_repos(self, installation_id):
         """Get all repos that this installation has access to.
-
-        Useful for testing and debugging.
         """
         url = 'https://api.github.com/installation/repositories'
         headers={'Authorization': f'token {self.get_installation_access_token(installation_id)}',
