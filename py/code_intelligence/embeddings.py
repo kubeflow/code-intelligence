@@ -90,11 +90,13 @@ def get_all_issue_text(owner, repo, inf_wrapper, workers=64):
     # filter out issues with problems
     filtered_issues = []
 
+    if not issues:
+      raise ValueError(f"No issues retrieved for {owner}/{repo}")
     for issue in issues:
         if issue:
             filtered_issues.append(issue)
 
-    logging.info(f'Retrieved {len(filtered_issues)} issues.')
+    logging.info(f'Repo {owner}/{repo} Retrieved {len(filtered_issues)} issues.')
 
     features = []
     labels = []
