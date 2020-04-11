@@ -8,6 +8,7 @@ import json_log_formatter
 
 
 ISSUE_RE = re.compile("([^/]*)/([^#]*)#([0-9]*)")
+ISSUE_URL_RE = re.compile("https://github.com/([^/]*)/([^#]*)/issues/([0-9]*)")
 
 # TODO(jlewi): Might be better to just write it
 # as a json list
@@ -28,6 +29,19 @@ def parse_issue_spec(issue):
     owner, repo, number
   """
   m = ISSUE_RE.match(issue)
+  if not m:
+    return None, None, None
+  return m.group(1), m.group(2), int(m.group(3))
+
+# TODO(jlewi): Unittest
+def parse_issue_url(issue):
+  """Parse an issue in the form https://github.com/{owner}/{repo}/issues/{number}
+  Args:
+    isue: An issue in the form {owner}/{repo}#{number}
+  Returns:
+    owner, repo, number
+  """
+  m = ISSUE_URL_RE.match(issue)
   if not m:
     return None, None, None
   return m.group(1), m.group(2), int(m.group(3))
