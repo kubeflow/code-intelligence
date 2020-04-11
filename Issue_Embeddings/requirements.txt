@@ -99,6 +99,7 @@ six>=1.13.0
 soupsieve==1.9.1
 spacy==2.1.4
 srsly==0.0.7
+tables
 terminado==0.8.2
 testpath==0.4.2
 textacy==0.7.1
