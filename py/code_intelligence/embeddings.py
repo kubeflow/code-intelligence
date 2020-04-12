@@ -32,7 +32,7 @@ def find_max_issue_num(owner, repo):
     return int(issue_num)
 
 # TODO(jlewi): Looks like idx isn't used can we remove it?
-# TODO(jlewi): Should we use the GitHub API rather than using the web?
+# TODO(https://github.com/kubeflow/code-intelligence/issues/126): Should we use the GitHub API rather than using the web?
 def get_issue_text(num, idx, owner, repo, skip_issue=True):
     """
     Get the raw text of an issue body and label.
@@ -73,6 +73,60 @@ def get_issue_text(num, idx, owner, repo, skip_issue=True):
             'labels': labels,
             'num': num}
 
+# TODO(https://github.com/kubeflow/code-intelligence/issues/126): This function should replace
+# get_issue_text
+def get_issue(url, gh_client):
+  """Fetch the issue data using GraphQL
+  
+  Args:
+    url: Url of the GitHub isue to fetch
+    gh_client: GitHub GraphQl client.
+    
+  Returns
+    ------
+    dict
+        {'title':str, 'body':str}
+  """
+  issue_query = """query getIssue($url: URI!) {
+  resource(url: $url) {
+    __typename
+    ... on Issue {
+      author {
+        __typename
+        ... on User {
+          login
+        }
+        ... on Bot {
+          login
+        }
+      }
+      id
+      title
+      body
+      url
+      state
+      labels(first: 30) {
+        totalCount
+        edges {
+          node {
+            name
+          }
+        }
+      }
+    }
+  }
+}"""
+
+  variables = {
+          "url": url,
+  }
+  issue_results = gh_client.run_query(issue_query, variables)
+  
+  if "errors" in issue_results:
+    logging.error(f"There was a problem running the github query; {issue_results['errors']}")
+    raise ValueError(f"There was a problem running the github query: {issue_results['errors']}")
+  return issue_results["data"]["resource"]
+  
 def get_all_issue_text(owner, repo, inf_wrapper, workers=64):
     """
     Prepare embedding features of all issues in a given repository.
