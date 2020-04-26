@@ -17,8 +17,8 @@ def find_max_issue_num(owner, repo):
 
     Returns
     -------
-    int
-        the highest issue number associated with this repo.
+    int192
+            the highest issue number associated with this repo.
     """
     url = f'https://github.com/{owner}/{repo}/issues'
     r = requests.get(url)
@@ -174,24 +174,32 @@ def pass_through(x):
     """Avoid messages when the model is deserialized in fastai library."""
     return x
 
-def load_model_artifact(model_url):
+# TODO(jlewi): I think we should just get rid of this method.
+# Callers should use gcs_util and then call inference_wrapper
+def load_model_artifact(model_url, local_dir=None):
     """
     Download the pretrained language model from URL
     Args:
       model_url: URL to store the pretrained model
+      local_dir: (Optional) Director where model files are stored
 
     Returns
     ------
     InferenceWrapper
         a wrapper for a Learner object in fastai.
     """
-    path = Path('./model_files')
-    full_path = path/'model.pkl'
-
+    if not local_dir:
+      home = str(Path.home())
+      local_dir = os.path.join(home, "model_files")
+      
+    full_path = os.path.join(local_dir, 'model.pkl')
+    
     if not full_path.exists():
         logging.info('Loading model.')
         path.mkdir(exist_ok=True)
         request_url.urlretrieve(model_url, path/'model.pkl')
+    else:
+      logging.info(f"Model {full_path} exists")
     return InferenceWrapper(model_path=path, model_file_name='model.pkl')
 
 
