@@ -2,6 +2,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import roc_auc_score
+
 import os
 import dill as dpickle
 import numpy as np
@@ -134,3 +136,28 @@ class MLPWrapper:
             raise Exception("Model path {self.model_file} does not exist")
         with open(self.model_file, 'rb') as f:
             self.clf = dpickle.load(f)
+
+def calculate_auc(predictions, y_holdout, label_columns):
+    """Calculate AUC.
+    
+    Args:
+      Predictions: num_samples x num_features array
+      y_holdout: Labels "one" hot encoded; num_samples x num_labels
+      label_columns: List of labels
+    """
+    auc_scores = []
+    counts = []
+
+    for i, l in enumerate(label_columns):
+        y_hat = predictions[:, i]
+        y = y_holdout[:, i]
+        auc = roc_auc_score(y_true=y, y_score=y_hat)
+        auc_scores.append(auc)
+        
+    counts = y_holdout.sum(axis=0)
+    
+    df = pd.DataFrame({'label': label_columns, 'auc': auc_scores, 'count': counts})    
+    display(df)
+    weightedavg_auc = df.apply(lambda x: x.auc * x['count'], axis=1).sum() / df['count'].sum()
+    print(f'Weighted Average AUC: {weightedavg_auc}')
+    return df, weightedavg_auc            

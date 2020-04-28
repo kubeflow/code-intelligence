@@ -71,6 +71,18 @@ def upload_file_to_gcs(bucket_name, gcs_filename, local_filename, storage_client
     blob = bucket.blob(gcs_filename)
     blob.upload_from_filename(local_filename)
 
+
+def copy_from_gcs(gcs_path, local_filename, storage_client=None):
+    """
+    Download a file in GCS to the local.
+    Args:
+      gcs_path: gcs path
+      local_filename: the new local file, str
+      storage_client: client to bundle configuration needed for API requests
+    """
+    bucket_name, gcs_file_name = split_gcs_uri(gcs_path)
+    return download_file_from_gcs(bucket_name, gcs_file_name, local_filename, storage_client=storage_client)    
+    
 def download_file_from_gcs(bucket_name, gcs_filename, local_filename, storage_client=None):
     """
     Download a file in GCS to the local.

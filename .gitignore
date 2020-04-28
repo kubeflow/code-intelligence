@@ -1,4 +1,3 @@
-.*
 *.pem
 *.hdf5
 *.pkl
@@ -13,5 +12,9 @@ fairing/__pycache__/**
 *.pyc
 py/code_intelligence/.data/**
 
+# ignore coredumps
+**/core.*
+# ignore checkpoints
+**/.ipynb_checkpoints/
 # TODO(jlewi): Is this a remote module? Why is the fairing src getting cloned here?
 Label_Microservice/src/**

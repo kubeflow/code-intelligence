@@ -1,0 +1,58 @@
+apiVersion: kubeflow.org/v1
+kind: Notebook
+metadata:
+  labels:
+    app: mnist # {"$ref":"#/definitions/io.k8s.cli.substitutions.name"}
+  name: mnist # {"$ref":"#/definitions/io.k8s.cli.substitutions.name"}
+spec:
+  template:
+    spec:
+      containers:
+      - env:
+        - name: JUPYTERLAB_DIR # Set the JJUPYTERLAB_DIR so we can install extensions        
+          value: /home/jovyan/.jupyterlab_dir
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-token
+              key: github_token
+        image: gcr.io/kubeflow-images-public/tensorflow-1.15.2-notebook-gpu:1.0.0
+        name: mnist # {"$ref":"#/definitions/io.k8s.cli.substitutions.name"}
+        # Bump the resources to include a GPU
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+          requests:
+            cpu: "15"
+            memory: 32.0Gi
+        volumeMounts:
+        - mountPath: /home/jovyan
+          name: workspace-mnist
+        - mountPath: /dev/shm
+          name: dshm
+      # Start a container running theia which is an ID
+      - env:
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-token
+              key: github_token
+        # TODO(jlewi): Should we use an image which actually includes an appropriate toolchain like python?
+        image: theiaide/theia:next
+        name: theia
+        resources:
+          requests:
+            cpu: "4"
+            memory: 1.0Gi
+        volumeMounts:
+        - mountPath: /mount/jovyan
+          name: workspace-mnist
+      serviceAccountName: default-editor
+      ttlSecondsAfterFinished: 300
+      volumes:
+      - name: workspace-mnist
+        persistentVolumeClaim:
+          claimName: workspace-mnist
+      - emptyDir:
+          medium: Memory
+        name: dshm
