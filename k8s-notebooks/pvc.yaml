@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   # TODO(jlewi): Need to create a kpt setter for this.
-  name: workspace-mnist
+  name: workspace-mnist # {"$ref":"#/definitions/io.k8s.cli.substitutions.pvc-name"}
 spec:
   accessModes:
   - ReadWriteOnce

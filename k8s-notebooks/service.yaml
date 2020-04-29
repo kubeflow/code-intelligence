@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: mnist-theia
+  name: mnist-theia # {"$ref":"#/definitions/io.k8s.cli.substitutions.theia-name"}
 spec:
   ports:
   - name: http-theia
