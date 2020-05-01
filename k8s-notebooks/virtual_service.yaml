@@ -1,8 +1,7 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
-  name: notebook-kubeflow-jlewi-mnist-theia
-  namespace: kubeflow-jlewi  
+  name: mnist-theia # {"$ref":"#/definitions/io.k8s.cli.substitutions.theia-name"}    
 spec:
   gateways:
   - kubeflow/kubeflow-gateway
@@ -13,12 +12,12 @@ spec:
     - uri:
         # The prefix must have a trailing slash
         # And when you navigate to the URL you must include the trailing slash.
-        prefix: /notebook/kubeflow-jlewi/mnist-theia/        
+        prefix: /notebook/kubeflow-jlewi/mnist-theia/ # {"$ref":"#/definitions/io.k8s.cli.substitutions.theia-url"}    
     rewrite:
       uri: /
     route:
     - destination:
-        host: mnist-theia.kubeflow-jlewi.svc.cluster.local
+        host: mnist-theia.kubeflow-jlewi.svc.cluster.local # {"$ref":"#/definitions/io.k8s.cli.substitutions.theia-host"}    
         port:
           number: 3000
     timeout: 300s

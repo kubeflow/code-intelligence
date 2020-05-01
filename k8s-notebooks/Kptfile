@@ -32,3 +32,39 @@ openAPI:
           values:
           - marker: NAME
             ref: '#/definitions/io.k8s.cli.setters.name'
+    io.k8s.cli.substitutions.pvc-name:
+      x-k8s-cli:
+        substitution:
+          name: pvc-name
+          pattern: workspace-NAME
+          values:
+          - marker: NAME
+            ref: '#/definitions/io.k8s.cli.setters.name'
+    io.k8s.cli.substitutions.theia-name:
+      x-k8s-cli:
+        substitution:
+          name: theia-name
+          pattern: NAME-theia
+          values:
+          - marker: NAME
+            ref: '#/definitions/io.k8s.cli.setters.name'
+    io.k8s.cli.substitutions.theia-url:
+      x-k8s-cli:
+        substitution:
+          name: theia-url
+          pattern: /notebook/SPACE/NAME-theia/
+          values:
+          - marker: NAME
+            ref: '#/definitions/io.k8s.cli.setters.name'
+          - marker: SPACE
+            ref: '#/definitions/io.k8s.cli.setters.namespace'
+    io.k8s.cli.substitutions.theia-host:
+      x-k8s-cli:
+        substitution:
+          name: theia-url
+          pattern: NAME-theia.SPACE.svc.cluster.local
+          values:
+          - marker: NAME
+            ref: '#/definitions/io.k8s.cli.setters.name'
+          - marker: SPACE
+            ref: '#/definitions/io.k8s.cli.setters.namespace'
