@@ -6,6 +6,8 @@
 !.gitignore
 !.dockerignore
 **/flask_session
+**/.cache
+**/.data
 build/**
 fairing/__pycache__/**
 **/__pycache__/**

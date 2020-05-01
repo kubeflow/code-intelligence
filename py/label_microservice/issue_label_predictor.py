@@ -2,15 +2,31 @@ import logging
 import os
 
 from code_intelligence import embeddings
+from label_microservice import automl_model
 from label_microservice import combined_model
 from label_microservice import repo_specific_model
 from label_microservice import universal_kind_label_model as universal_model
 
 UNIVERSAL_MODEL_NAME = "universal"
 
-def _combined_model_name(org, repo):
-  """Return the name of the combined model for a repo"""
-  return f"{org}/{repo}_combined"
+# TODO(jlewi): Lets not hardcode this.
+KUBEFLOW_AUTOML_MODEL = "projects/976279526634/locations/us-central1/models/TCN654213816573231104"
+
+def _combined_model_name(org, repo=None):
+  """Return the name of the combined model for a repo or organization.
+
+  If repo is specified looks for a repo specific model. If repo is
+  none we return an org wide model.
+
+  Args:
+    org: Name of the org.
+    repo: (Optional) The name of the repo
+  """
+
+  if repo:
+    return f"{org}/{repo}_combined"
+  else:
+    return f"{org}_combined"
 
 def _dict_has_keys(d, keys):
   for k in keys:
@@ -30,36 +46,38 @@ class IssueLabelPredictor:
 
   def __init__(self):
 
+    # A dictionary mapping keys to individual models.
     self._models = {}
     self._load_models()
 
   def _load_models(self):
+    """Load the models."""
     logging.info("Loading the universal model")
     self._models[UNIVERSAL_MODEL_NAME] = universal_model.UniversalKindLabelModel()
 
     # TODO(jlewi): How should we get a list of all models for which we
-    # have repo specific models. mlbot is doing this based on a config
+    # have repo or org specific models. mlbot is doing this based on a config
     # file; https://github.com/machine-learning-apps/Issue-Label-Bot/blob/26d8fb65be3b39de244c4be9e32b2838111dac10/flask_app/forward_utils.py#L5
-    for org_and_repo in [("kubeflow", "kubeflow")]:
-      org = org_and_repo[0]
-      repo = org_and_repo[1]
-      logging.info(f"Loading model for repo {org}/{repo}")
+    for org in ["kubeflow"]:
+      logging.info(f"Loading AutoML model for org: {org}; model: {KUBEFLOW_AUTOML_MODEL}")
 
-      repo_model = repo_specific_model.RepoSpecificLabelModel.from_repo(
-              org, repo,
-              embedding_api_endpoint=os.environ.get("ISSUE_EMBEDDING_SERVICE"))
+      org_model = automl_model.AutoMLModel(model_name=KUBEFLOW_AUTOML_MODEL)
 
-      self._models[f"{org}/{repo}"] = repo_model
+      self._models[f"{org}"] = org_model
 
       combined = combined_model.CombinedLabelModels(
-              models=[self._models["universal"], repo_model])
-      self._models[_combined_model_name(org, repo)] = combined
+              models=[self._models["universal"], org_model])
+      self._models[_combined_model_name(org)] = combined
 
-  def predict_labels_for_data(self, model_name, title, body, context=None):
+
+  def predict_labels_for_data(self, model_name, org, repo, title, body,
+                              context=None):
     """Generate label predictions for the specified data.
 
     Args:
       model_name: Which model to use
+      org: org
+      repo: Repo name
       title: Title for the issue
       body: body of the issue
 
@@ -70,8 +88,10 @@ class IssueLabelPredictor:
       raise ValueError(f"No model named {model_name}")
 
     model = self._models[model_name]
-    logging.info(f"Generating predictions for title={title} text={body}")
-    predictions = model.predict_issue_labels(title, body, context=context)
+    logging.info(f"Generating predictions for title={title} text={body} using"
+                 f"model: {model_name} class:{model.__class__}")
+    predictions = model.predict_issue_labels(org, repo, title, body,
+                                             context=context)
 
     return predictions
 
@@ -91,10 +111,13 @@ class IssueLabelPredictor:
      dict: str -> float; dictionary mapping labels to their probability
     """
     if not model_name:
+      org_model = _combined_model_name(org)
       repo_model = _combined_model_name(org, repo)
 
       if repo_model in self._models:
         model_name = repo_model
+      elif org_model in self._models:
+        model_name = org_model
       else:
         model_name = UNIVERSAL_MODEL_NAME
 
@@ -117,7 +140,8 @@ class IssueLabelPredictor:
     }
 
     predictions = self.predict_labels_for_data(
-      model_name, data.get("title"), data.get("body"), context=context)
+      model_name, org, repo, data.get("title"), [data.get("body")],
+      context=context)
 
     return predictions
 

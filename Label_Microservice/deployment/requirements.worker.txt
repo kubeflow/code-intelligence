@@ -11,6 +11,7 @@ google-api-core==1.14.2
 google-api-python-client==1.7.10
 google-auth==1.6.3
 google-auth-httplib2==0.0.3
+google-cloud-automl==0.10.0
 #google-cloud-bigquery==1.17.0
 google-cloud-core==1.0.3
 google-cloud-pubsub==0.45.0
