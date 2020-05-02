@@ -9,6 +9,7 @@ import logging
 from label_microservice.repo_config import RepoConfig
 from code_intelligence import github_app
 from code_intelligence import github_util
+from code_intelligence import graphql
 from code_intelligence.pubsub_util import check_subscription_name_exists
 from code_intelligence.pubsub_util import create_subscription_if_not_exists
 from code_intelligence import util
@@ -19,6 +20,16 @@ import subprocess
 import sys
 
 DEFAULT_APP_URL = "https://github.com/marketplace/issue-label-bot"
+
+# Repo containing org wide config
+ORG_CONFIG_REPO = ".github"
+
+# The GitHub logins of the label bots. These are used to tell
+# whether we have already commented on an issue.
+# TODO(jlewi): Can we get this programmatically so it is always in sync?
+# with the bot being used? e.g. we have to get credentials for the bot
+# that we are acting as so we should be able to get the login
+LABEL_BOT_LOGINS = ["kf-label-bot-dev", "issue-label-bot"]
 
 class Worker:
     """
@@ -302,28 +313,90 @@ class Worker:
         # expiration?
         ghapp = github_app.GitHubApp.create_from_env()
 
-        # handle the yaml file
+        # Load IssueLabelBot config. Look for both organization configuration
+        # and repo specific configuration.
+        # TODO(jlewi): We should really cache these and use some form of
+        # expiration to pick up changes.
+        org_config = github_util.get_yaml(owner=repo_owner,
+                                          repo=ORG_CONFIG_REPO, ghapp=ghapp)
+
         repo_config = github_util.get_yaml(owner=repo_owner, repo=repo_name,
                                            ghapp=ghapp)
 
-        predictions = self.apply_repo_config(repo_config, repo_owner, repo_name,
+        context = {
+            "repo_owner": repo_owner,
+            "repo_name": repo_name,
+            "issue_num": issue_num
+        }
+        config = {}
+
+        if org_config:
+            config.update(org_config)
+
+        if repo_config:
+            config.update(repo_config)
+
+        predictions = self.apply_repo_config(config, repo_owner, repo_name,
                                              predictions, ghapp)
+
+        url = util.build_issue_url(repo_owner, repo_name, issue_num)
+
+        token_generator = github_app.GitHubAppTokenGenerator(
+            ghapp, f"{repo_owner}/{repo_name}")
+        gh_client = graphql.GraphQLClient(headers=token_generator.auth_headers)
+        issue_data = github_util.get_issue(url, gh_client)
+
+        predicted_labels = set(predictions.keys())
+
+        # Remove from label_names any labels which already been applied
+        # or which were explicitly removed.
+        label_names = set(predicted_labels) - set(issue_data["labels"])
+        label_names = label_names - set(issue_data["removed_labels"])
+
+        already_applied = predicted_labels.intersection(issue_data["labels"])
+        removed = predicted_labels.intersection(issue_data["removed_labels"])
+
+        filtered_info = {}
+        filtered_info.update(context)
+        filtered_info["predicted_labels"] = list(predicted_labels)
+        filtered_info["already_applied"] = list(already_applied)
+        filtered_info["removed"] = list(removed)
+
+        logging.info("Filtered predictions", extra=filtered_info)
+        label_names = list(label_names)
+
+        # Check whether the bot has already commented on this issue.
+        already_commented = False
+        for a in LABEL_BOT_LOGINS:
+            if a in issue_data["comment_authors"]:
+                already_commented = True
+                break
+
+        if already_commented:
+            logging.info("Label bot has already commented on issue.",
+                         extra=context)
+        else:
+            logging.info("Label bot has not commented on issue.",
+                         extra=context)
 
         if not installation_id:
             logging.info("No GitHub App Installation Provided Fetching it")
             installation_id = ghapp.get_installation_id(repo_owner, repo_name)
         install = ghapp.get_installation(installation_id)
+
+        # We are using the GitHub3 library to add comments. We should
+        # TODO(jlewi): We should Use GraphQL so we can use a single library.
         issue = install.issue(repo_owner, repo_name, issue_num)
 
-        label_names = predictions.keys()
+        message = None
         if label_names:
             # create message
             # Create a markdown table with probabilities.
             rows = ["| Label  | Probability |",
                     "| ------------- | ------------- |"]
 
-            for l, p in predictions.items():
-                rows.append("| {} | {:.2f} |".format(l, p))
+            for l in label_names:
+                rows.append("| {} | {:.2f} |".format(l, predictions[l]))
 
             lines = ["Issue-Label Bot is automatically applying the labels:",
                      ""]
@@ -340,17 +413,27 @@ class Worker:
             message = "\n".join(lines)
             # label the issue using the GitHub api
             issue.add_labels(*label_names)
-            logging.info(f'Add `{"`, `".join(label_names)}` to the issue # {issue_num}')
+            context["labels"] = label_names
+            logging.info(f'Add `{"`, `".join(label_names)}` to the issue # {issue_num}', extra=context)
         else:
-            message = """Issue Label Bot is not confident enough to auto-label this issue.
-            See [dashboard]({app_url}data/{repo_owner}/{repo_name}) for more details.
-            """.format(app_url=self.app_url,
-                       repo_owner=repo_owner,
-                       repo_name=repo_name)
-            logging.warning(f'Not confident enough to label this issue: # {issue_num}')
+            # We don't want a spam an issue with comments. So once label
+            # bot comments on an issue we will not chime in to report that
+            # we aren't commented.
+            if not already_commented:
+                # TODO(jlewi): Should we include top predictions for area and
+                # platform? Maybe we should include top predictions for
+                # all areas? The problem is the model only returns predictions
+                # above the threshold.
+                message = """Issue Label Bot is not confident enough to auto-label this issue.
+                See [dashboard]({app_url}data/{repo_owner}/{repo_name}) for more details.
+                """.format(app_url=self.app_url,
+                           repo_owner=repo_owner,
+                           repo_name=repo_name)
+                logging.warning(f'Not confident enough to label this issue: # {issue_num}', extra=context)
 
         # make a comment using the GitHub api
-        comment = issue.create_comment(message)
+        if message:
+            comment = issue.create_comment(message)
 
 class NoGCPCredentials(Exception):
     pass

@@ -37,7 +37,7 @@ def parse_issue_spec(issue):
 def parse_issue_url(issue):
   """Parse an issue in the form https://github.com/{owner}/{repo}/issues/{number}
   Args:
-    isue: An issue in the form {owner}/{repo}#{number}
+    issue: An issue in the form {owner}/{repo}#{number}
   Returns:
     owner, repo, number
   """
@@ -45,6 +45,20 @@ def parse_issue_url(issue):
   if not m:
     return None, None, None
   return m.group(1), m.group(2), int(m.group(3))
+
+# TODO(jlewi): Unittest
+def build_issue_url(org, repo, number):
+  """Return a url in the form https://github.com/{owner}/{repo}/issues/{number}
+
+  Args:
+    org: The organization that owns the issue
+    repo: The repo that owns the issue
+    number: The issue number
+
+  Returns:
+    owner, repo, number
+  """
+  return f"https://github.com/{org}/{repo}/issues/{number}"
 
 pacific = pytz.timezone("US/Pacific")
 

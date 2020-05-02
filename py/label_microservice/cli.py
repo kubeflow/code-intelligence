@@ -6,12 +6,24 @@ to be picked up by the backends.
 import logging
 import json
 import fire
+from code_intelligence import graphql
+from code_intelligence import github_util
 from code_intelligence import util
 from google.cloud import pubsub
 import subprocess
 
 DEFAULT_TOPIC = "projects/issue-label-bot-dev/topics/TEST_event_queue"
 class Cli:
+  @staticmethod
+  def get_issue(url):
+    """Get the data for a specific issue.
+
+    Args:
+      url: URL of the issue
+    """
+    gh_client = graphql.GraphQLClient()
+    result = github_util.get_issue(url, gh_client)
+    print(json.dumps(result, indent=4, sort_keys=True))
 
   @staticmethod
   def label_issue(issue, pubsub_topic=DEFAULT_TOPIC):
