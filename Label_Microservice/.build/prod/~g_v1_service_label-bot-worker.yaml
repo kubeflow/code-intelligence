@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: label-bot
+    environment: prod
+    service: label-bot
+  name: label-bot-worker
+  namespace: label-bot-prod
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: label-bot
+    environment: prod
+    service: label-bot
+  type: ClusterIP

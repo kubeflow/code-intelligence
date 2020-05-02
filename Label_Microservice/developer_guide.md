@@ -68,18 +68,28 @@ Setup a namespace for your development
 1. Send a prediction request using pubsub
 
    ```
-   python -m label_microservice.py --issue=kubeflow/kubeflow#4602
+   python -m label_microservice.cli label-issue --issue=kubeflow/kubeflow#4602 --topic=projects/issue-label-bot-dev/topics/TEST_event_queue
    ```   
 
    * Look at the logs of the pod to see the prediction
    * Ensure that you don't have other pods using the same pubsub subscription; otherwise your item might not get handled by the pod you are looking at
 
 
+1. Get pod logs
+
+   ```
+   python -m label_microservice.cli pod-logs --pod=<pod name>
+   ```
+
+   * This will pretty print the json logs which is easier to read.
+
 1. Ensure your kubeconfig context sets the namespace to the namespace skaffold is deploying in; otherwise file sync and log streaming doesn't seem to work.
 
 ## Unresolved Issues
 
 * skaffold continuous mode (`skaffold dev` ) doesn't appear to detect changes in the python files and retrigger the build and deployment
+
+* skaffold doesn't appear to substitute the newly built image into the kustomize package
 
 
 ### Kaniko Image Caching

@@ -9,6 +9,7 @@ import dill as dpickle
 
 from urllib.request import urlopen
 from label_microservice import models
+import typing
 
 class UniversalKindLabelModel(models.IssueLabelModel):
   """UniversalKindLabelModel is a universal model that is trained across all repos.
@@ -49,16 +50,17 @@ class UniversalKindLabelModel(models.IssueLabelModel):
     self._prediction_threshold = defaultdict(lambda: .52)
     self._prediction_threshold["question"] = .60
 
-  def predict_issue_labels(self,  title:str, body:str, context=None):
+  def predict_issue_labels(self, org:str, repo:str, title:str,
+                           text:typing.List[str], context=None):
     """
     Get probabilities for the each class.
 
     Parameters
     ----------
-    title: str
-        the issue title
-    body: str
-       the issue body
+     org: The organization the issue belongs in. Ignored by model.
+     repo: The repository. Ignored by model
+     title: Issue title
+     text: List of contents of the comments on the issue
 
     Returns
     ------
@@ -75,7 +77,7 @@ class UniversalKindLabelModel(models.IssueLabelModel):
     if not context:
       context = {}
     #transform raw text into array of ints
-    vec_body = self.body_pp.transform([body])
+    vec_body = self.body_pp.transform(["\n".join(text)])
     vec_title = self.title_pp.transform([title])
 
     # make predictions with the model

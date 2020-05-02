@@ -4,9 +4,11 @@ The CLI can be used to publish issues to perform inference on to pubsub
 to be picked up by the backends.
 """
 import logging
+import json
 import fire
 from code_intelligence import util
 from google.cloud import pubsub
+import subprocess
 
 DEFAULT_TOPIC = "projects/issue-label-bot-dev/topics/TEST_event_queue"
 class Cli:
@@ -37,6 +39,25 @@ class Cli:
                       repo_name=repo_name,
                       issue_num=str(issue_num))
 
+  @staticmethod
+  def pod_logs(pod):
+    """Pretty print pod logs
+
+    Args:
+      pod: Name of the pod
+    """
+    output = subprocess.check_output(["kubectl", "logs", pod])
+
+    for l in output.splitlines():
+      try:
+        entry = json.loads(l)
+        filename = entry.get("filename")
+        line = entry.get("line")
+        message = entry.get("message")
+        print(f"{filename}:{line}: {message}")
+      except json.JSONDecodeError:
+        print(l)
+        continue
 if __name__ == "__main__":
   logging.basicConfig(level=logging.INFO,
                       format=('%(levelname)s|%(asctime)s'

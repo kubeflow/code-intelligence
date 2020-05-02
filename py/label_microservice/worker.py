@@ -20,8 +20,6 @@ import sys
 
 DEFAULT_APP_URL = "https://github.com/marketplace/issue-label-bot"
 
-DEFAULT_APP_URL = "https://github.com/marketplace/issue-label-bot"
-
 class Worker:
     """
     The worker class aims to do label prediction for issues from github repos.
