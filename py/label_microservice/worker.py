@@ -178,7 +178,7 @@ class Worker:
                 log_dict['predictions'] = predictions
                 self.add_labels_to_issue(installation_id, repo_owner, repo_name,
                                          issue_num, predictions)
-
+                # I think this log message is used for analysis.
                 logging.info("Add labels to issue.", extra=log_dict)
 
             # TODO(jlewi): I observed cases where some of the initial inferences

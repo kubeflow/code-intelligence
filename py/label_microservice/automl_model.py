@@ -91,6 +91,6 @@ class AutoMLModel(models.IssueLabelModel):
 
     for l in labels_to_remove:
       del predictions[l]
-    logging.info(f"Labels below precision and recall {labels_to_remove}",
+    logging.info(f"Labels below AutoML threshold {labels_to_remove}",
                  extra=context)
     return predictions
