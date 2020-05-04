@@ -62,7 +62,7 @@ The following describes the GCP projects and clusters where the two services are
     - **repository**: [machine-learning-apps/Issue-Label-Bot](https://github.com/machine-learning-apps/Issue-Label-Bot)
     - **GCP project**: github-probots
     - **cluster**: kf-ci-ml
-    - **namespace**: mlapp
+    - **namespace**: label-bot-prod
     - **yaml files**: [deployment](https://github.com/machine-learning-apps/Issue-Label-Bot/tree/master/deployment)
 
 1. Repo-specific label microservice
@@ -76,9 +76,9 @@ The following describes the GCP projects and clusters where the two services are
 
 1. The flask app
     - **repository**: [machine-learning-apps/Issue-Label-Bot](https://github.com/machine-learning-apps/Issue-Label-Bot)
-    - **GCP project**: issue-label-bot-dev
-    - **cluster**: github-mlapp-test
-    - **namespace**: mlapp
+    - **GCP project**: github-probots
+    - **cluster**: kf-ci-ml
+    - **namespace**: label-bot-dev
     - **yaml files**: [deployment](https://github.com/machine-learning-apps/Issue-Label-Bot/tree/master/deployment)
 
 1. Repo-specific label microservice
@@ -88,6 +88,10 @@ The following describes the GCP projects and clusters where the two services are
     - **namespace**: default
     - **yaml files**: [Label\_Microservice/deployment](https://github.com/kubeflow/code-intelligence/tree/master/Label_Microservice/deployment)
 
+1, GitHub bot - **kf-label-bot-dev**
+
+     - see [kubeflow/code-intelligence#84](https://github.com/kubeflow/code-intelligence/issues/84) for information on the setup
+     - see [machine-learning-apps/Issue-Label-Bot#57](https://github.com/machine-learning-apps/Issue-Label-Bot/issues/57)
 
 ## Instructions
 

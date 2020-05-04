@@ -42,7 +42,7 @@ spec:
           value: "27079"
         - name: GITHUB_APP_PEM_KEY
           value: /var/secrets/github/issue-label-bot-github-app.private-key.pem
-        image: gcr.io/issue-label-bot-dev/bot-worker:011a589
+        image: gcr.io/issue-label-bot-dev/bot-worker:6848ad6
         name: app
         resources:
           requests:

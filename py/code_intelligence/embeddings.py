@@ -42,6 +42,7 @@ def get_issue_text(num, idx, owner, repo, skip_issue=True):
     dict
         {'title':str, 'body':str}
     """
+    logging.warning("get_issue_text is deprecated; use github_util.get_issue")
     url = f'https://github.com/{owner}/{repo}/issues/{num}'
     status_code = requests.head(url).status_code
     if status_code != 200:
@@ -73,60 +74,6 @@ def get_issue_text(num, idx, owner, repo, skip_issue=True):
             'labels': labels,
             'num': num}
 
-# TODO(https://github.com/kubeflow/code-intelligence/issues/126): This function should replace
-# get_issue_text
-def get_issue(url, gh_client):
-  """Fetch the issue data using GraphQL
-  
-  Args:
-    url: Url of the GitHub isue to fetch
-    gh_client: GitHub GraphQl client.
-    
-  Returns
-    ------
-    dict
-        {'title':str, 'body':str}
-  """
-  issue_query = """query getIssue($url: URI!) {
-  resource(url: $url) {
-    __typename
-    ... on Issue {
-      author {
-        __typename
-        ... on User {
-          login
-        }
-        ... on Bot {
-          login
-        }
-      }
-      id
-      title
-      body
-      url
-      state
-      labels(first: 30) {
-        totalCount
-        edges {
-          node {
-            name
-          }
-        }
-      }
-    }
-  }
-}"""
-
-  variables = {
-          "url": url,
-  }
-  issue_results = gh_client.run_query(issue_query, variables)
-  
-  if "errors" in issue_results:
-    logging.error(f"There was a problem running the github query; {issue_results['errors']}")
-    raise ValueError(f"There was a problem running the github query: {issue_results['errors']}")
-  return issue_results["data"]["resource"]
-  
 def get_all_issue_text(owner, repo, inf_wrapper, workers=64):
     """
     Prepare embedding features of all issues in a given repository.
@@ -191,9 +138,9 @@ def load_model_artifact(model_url, local_dir=None):
     if not local_dir:
       home = str(Path.home())
       local_dir = os.path.join(home, "model_files")
-      
+
     full_path = os.path.join(local_dir, 'model.pkl')
-    
+
     if not full_path.exists():
         logging.info('Loading model.')
         path.mkdir(exist_ok=True)

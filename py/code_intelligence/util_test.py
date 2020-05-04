@@ -23,6 +23,11 @@ def test_parse_issue_spec():
     assert repo == c["expected"][1]
     assert number == c["expected"][2]
 
+def test_build_issue_url():
+  url = util.build_issue_url("kubeflow", "testing", "1234")
+  expected = "https://github.com/kubeflow/testing/issues/1234"
+  assert url == expected
+
 if __name__ == "__main__":
   logging.basicConfig(
       level=logging.INFO,
