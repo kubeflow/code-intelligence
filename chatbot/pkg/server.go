@@ -3,6 +3,7 @@ package pkg
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/aws/aws-sdk-go/private/util"
 	"github.com/go-kit/kit/endpoint"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/kubeflow/code-intelligence/chatbot/pkg/kfgokit"
@@ -11,8 +12,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	"io/ioutil"
 	"net"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 	//"cloud.google.com/go/dialogflow/apiv2"
 	dfext "github.com/kubeflow/code-intelligence/chatbot/pkg/dialogflow"
@@ -28,12 +32,13 @@ var (
 const (
 	DialogFlowWebhookPath = "/dialogflow/webhook"
 )
+
 // kubeflowInfoServer provides information about Kubeflow.
 // It is used to fulfill information requests from the chatbot.
 type kubeflowInfoServer struct {
-	listener net.Listener
+	listener    net.Listener
 	labelMapUri string
-	labels *KubeflowLabels
+	labels      *KubeflowLabels
 }
 
 // NewKubeflowInfoServer constructs an info server.
@@ -46,7 +51,7 @@ func NewKubeflowInfoServer(labelMapUri string) (*kubeflowInfoServer, error) {
 	}
 	s := &kubeflowInfoServer{
 		labelMapUri: labelMapUri,
-		labels: labels,
+		labels:      labels,
 	}
 
 	return s, nil
@@ -90,18 +95,36 @@ func makeDialogFlowWebhookEndpoint(svc dfext.DialogFlowWebhookService) endpoint.
 	}
 }
 
-
 // RegisterEndpoints creates the http endpoints for the server.
 func (s *kubeflowInfoServer) RegisterEndpoints() {
 	webhook := httptransport.NewServer(
 		makeDialogFlowWebhookEndpoint(s),
 		func(_ context.Context, r *http.Request) (interface{}, error) {
-			var request dfext.WebhookRequest
-			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-				log.Errorf("Err decoding Dialogflow WebhookRequest: " + err.Error())
+			// TODO(jlewi): We don't really need this code branch
+			// Printing out the raw request is just a hack to see what additional
+			// information slack is including.
+			body, err := ioutil.ReadAll(r.Body)
+			if err == nil {
+				// For debugging print the complete request. We do this
+				// to see what fields Dialogflow is sending.
+				log.Infof("Raw request body:\n%v", string(body))
+				var request dfext.WebhookRequest
+				if err := json.Unmarshal(body, &request); err != nil {
+					log.Errorf("Err decoding Dialogflow WebhookRequest: " + err.Error())
+					return nil, err
+				}
+				return request, nil
+			} else {
+				log.Errorf("Error reading body: %v", err)
 				return nil, err
 			}
-			return request, nil
+			//
+			//var request dfext.WebhookRequest
+			//if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			//	log.Errorf("Err decoding Dialogflow WebhookRequest: " + err.Error())
+			//	return nil, err
+			//}
+			//return request, nil
 		},
 		kfgokit.EncodeResponse,
 	)
@@ -137,18 +160,78 @@ func (s *kubeflowInfoServer) StartHttp(port int) error {
 	return err
 }
 
-func (s *kubeflowInfoServer) HandleWebhook(ctx context.Context, req dfext.WebhookRequest)(*dfext.WebhookResponse, error) {
-	log.Errorf("TODO need to implement actual webhook")
+// matchLabels finds the labels matching the specified parameters
+func (s *KubeflowLabels) matchLabels(parameters map[string]string) []string {
+	regex := []*regexp.Regexp{}
+
+	for prefix, value := range parameters {
+		if strings.TrimSpace(value) == "" {
+			continue
+		}
+		expr := fmt.Sprintf("%v.*/.*%v.*", strings.ToLower(prefix), strings.ToLower(value))
+		m, err := regexp.Compile(expr)
+
+		if err != nil {
+			log.Errorf("Could not compile the regex: %v ; error %v", expr, err)
+			continue
+		}
+		regex = append(regex, m)
+	}
+
+	labels := []string{}
+	for label, _ := range s.Labels {
+		for _, p := range regex {
+			s := strings.ToLower(label)
+			if match := p.MatchString(s); match {
+				labels = append(labels, label)
+			}
+		}
+	}
+
+	return labels
+}
+
+// HandleWebhook is a fulfilment for Dialogflow.
+func (s *kubeflowInfoServer) HandleWebhook(ctx context.Context, req dfext.WebhookRequest) (*dfext.WebhookResponse, error) {
+	// TODO(jlewi): Should check the intent name.
+	//
+	// TODO(jlewi): What we really want to do use send a prediction to attach labels to the question and
+	// then map it to the area?
+	log.Infof("Recieved request:%v", util.PrettyPrint(req))
+
 	res := &dfext.WebhookResponse{
-		FulfillmentMessages:[]dfext.Message {
-			{
-				Text: dfext.Text{
-					Text: []string {
-						"Need to add actual webhook message",
-					} ,
+		FulfillmentMessages: []dfext.Message{},
+	}
+
+	labels := s.labels.matchLabels(req.QueryResult.Parameters)
+
+	if len(labels) == 0 {
+		AppendMessage(res, "I'm sorry I don't understand what area of Kubeflow you are asking about.")
+		AppendMessage(res, "You can find a list of areas at "+s.labelMapUri)
+		return res, nil
+	}
+
+	for _, l := range labels {
+		info := s.labels.Labels[l]
+		AppendMessage(res,
+			fmt.Sprintf("The owners of %v are %v", l, strings.Join(info.Owners, ",")))
+	}
+
+	return res, nil
+}
+
+func AppendMessage(res *dfext.WebhookResponse, m string) {
+	if res == nil {
+		log.Errorf("res should not be nil")
+		return
+	}
+	res.FulfillmentMessages = append(
+		res.FulfillmentMessages,
+		dfext.Message{
+			Text: dfext.Text{
+				Text: []string{
+					m,
 				},
 			},
-		},
-		}
-	return res, nil
+		})
 }

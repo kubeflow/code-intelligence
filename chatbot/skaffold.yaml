@@ -2,7 +2,7 @@
 apiVersion: skaffold/v2alpha1
 kind: Config
 metadata:
-  name: label-microservice
+  name: chatbot
 build:
   artifacts:
   - image: gcr.io/issue-label-bot-dev/chatbot/server

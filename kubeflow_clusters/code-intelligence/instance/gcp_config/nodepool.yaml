@@ -1,0 +1,28 @@
+# Add an extra nodepool because the default node pool doesn't have proper scopes.
+apiVersion: container.cnrm.cloud.google.com/v1beta1
+kind: ContainerNodePool
+metadata:
+  clusterName: "issue-label-bot-dev/us-central1/code-intelligence" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"},{"name":"name","value":"code-intelligence"},{"name":"location","value":"us-central1"}]}}
+  name: code-intelligence-cpu-pool-v1 # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+  namespace: "issue-label-bot-dev" # {"type":"string","x-kustomize":{"setter":{"name":"gcloud.core.project","value":"issue-label-bot-dev"}}}
+spec:
+  location: us-central1 # {"type":"string","x-kustomize":{"setBy":"kpt","setter":{"name":"gcloud.compute.zone","value":"us-central1"}}}
+  initialNodeCount: 2
+  autoscaling:
+    minNodeCount: 2
+    maxNodeCount: 8 # {"type":"integer","x-kustomize":{"setter":{"name":"max-nodes","value":"8"}}}
+  nodeConfig:
+    machineType: n1-standard-8
+    minCpuPlatform: 'Intel Broadwell'
+    metadata:
+      disable-legacy-endpoints: "true"
+    serviceAccountRef:
+      name: code-intelligence-vm@issue-label-bot-dev.iam.gserviceaccount.com # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"},{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+    oauthScopes:
+    - https://www.googleapis.com/auth/logging.write
+    - https://www.googleapis.com/auth/monitoring
+    - https://www.googleapis.com/auth/devstorage.read_only
+    workloadMetadataConfig:
+      nodeMetadata: GKE_METADATA_SERVER
+  clusterRef:
+    name: code-intelligence # {"type":"string","x-kustomize":{"setter":{"name":"name","value":"code-intelligence"}}}

@@ -6,18 +6,35 @@ This is a Dialogflow fulfillment server.
 
 It is currently running in
 
-* **Full cluster name**: gke_issue-label-bot-dev_us-east1-d_issue-label-bot
 * **project**: issue-label-bot-dev
-* **cluster**: issue-label-bot
+* **cluster**: code-intelligence
+
+It is deployed through ACM. To deploy it
+
+```
+skaffold render --output=../kubeflow_clusters/code-intelligence/acm-repo/dialogflow-webhook.yaml
+```
+
+Then commit and push the updated manifests to ACM
 
 ## Notes.
 
 To expose the webhook we need to bypass IAP. To do this we create a second K8s service to create a second GCP Backend Service
 but with IAP enabled.
 
-```
-kubectl --context=issue-label-bot-dev  -n istio-system create -f istio-ingressgateway.yaml
-```
+This requires the following modifications
+
+* `kubeflow_clusters/code-intelligence/dialogflow-ingress.yaml` this file defines the Kubernetes service and backendconfig
+* `kubeflow_clusters/code-intelligence/extensions_v1beta1_ingress_envoy-ingress.yaml` - We modify our existing
+   gateway to add a second path which won't have IAP enabled.
+
+
+ We need to manually modify the GCP health check associated with this backend
+
+ * Set the path to "/healthz/ready"
+ * Set the target port to the node port mapped to the istio status-port
+
+### Authorization using manual JWTs
 
 We need to modify the security policy applied at the ingress gateway so that it won't reject requests without a valid
 JWT.
@@ -27,27 +44,13 @@ This traffic can't be routed through IAP. We will still use a JWT to restrict tr
 
 So we need to add a second JWT origin rule to match this traffic to the policy.
 
-We can do this as
 
-```
-kubectl --context=issue-label-bot-dev -n istio-system patch policy  ingress-jwt -p "$(cat ingress-jwt.patch.yaml)" --type=merge
-```
+#### Creating a JWT
 
-To verify that is working we can port-forward to the service.
+To generate JWTs we use the [jose-util](https://github.com/square/go-jose/tree/master/jose-util).
 
-```
-kubectl --context=issue-label-bot-dev  -n istio-system port-forward service/chatbot-istio-ingressgateway 9080:80
-```
+First we need to generate a public-private key pair to sign JWTs.
 
-Send a request with a JWT this should fail with "Origin Authentication Failure" since there is no JWT.
-
-```
-curl localhost:9080/chatbot/dev/  -d '{}' -H "Content-Type: application/json" 
-```
-
-
-
-To authorize Dialogflow webhook we will use a JWT.  We use the jose-util to generate a public private key pair
 
 ```
 git clone git@github.com:square/go-jose.git git_go-jose
@@ -62,10 +65,55 @@ Generate a key pair
 ./jose-util generate-key --alg=ES256 --use sig --kid=chatbot
 ```
 
-Upload the public bit to a public GCS bucket
+This will generate a json file.
+
+Convert this to a JWK file. A JWK file is just a json file which has a list of keys; the keys being the contents of the
+the json file outputted by jose-util. 
+
+
+Upload the public bit to a public GCS bucket. The following is our current public key.
+
 
 ```
 https://storage.cloud.google.com/issue-label-bot-dev_public/chatbot/keys/jwk-sig-chatbot-pub.json
+```
+
+
+JWT's are bearer tokens so be sure to keep it secret. These JWTs also currently don't expire. 
+
+We modify the ISTIO policy to accept this JWT for paths prefixed by /chatbot; see `kubeflow_clusters/code-intelligence/acm-repo/authentication.istio.io_v1alpha1_policy_ingress-jwt.yaml`
+
+To verify that is working try sending a request without a JWT
+
+```
+curl https://code-intelligence.endpoints.issue-label-bot-dev.cloud.goog/chatbot/
+```
+
+* This should fail with error "Origin Authentication Failure"
+
+Now generate a JWT using the binary 
+
+We can do this using the binary `cmd/jwt`
+
+```
+cd cmd/jwt
+go build .
+./jwt
+```
+
+Send a request using this JWT in the header
+
+```
+curl https://code-intelligence.endpoints.issue-label-bot-dev.cloud.goog/chatbot/ -H "Authorization: Bearer ${CHATBOTJWT}"
+
+```
+
+* This request should succeed.
+
+To test the webhook path
+
+```
+curl https://code-intelligence.endpoints.issue-label-bot-dev.cloud.goog/chatbot/dev/dialogflow/webhook -H "Authorization: Bearer ${CHATBOTJWT}" -d '{}' -H "Content-Type: application/json" 
 ```
 
 ## Referencess

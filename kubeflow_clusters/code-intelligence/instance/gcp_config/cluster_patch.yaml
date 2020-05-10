@@ -9,8 +9,15 @@ metadata:
 spec:
   location: us-central1 # {"type":"string","x-kustomize":{"setBy":"kpt","setter":{"name":"location","value":"us-central1"}}}
   workloadIdentityConfig:
-    identityNamespace: issue-label-bot-dev.svc.id.goog # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+    identityNamespace: issue-label-bot-dev.svc.id.goog # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}  
   nodeConfig:
+    machineType: n1-standard-8
+    metadata:
+      disable-legacy-endpoints: "true"    
+    oauthScopes:
+      - https://www.googleapis.com/auth/logging.write
+      - https://www.googleapis.com/auth/monitoring
+      - https://www.googleapis.com/auth/devstorage.read_only
     serviceAccountRef:
       name: code-intelligence-vm # {"type":"string","x-kustomize":{"partialSetters":[{"name":"name","value":"code-intelligence"}]}}
   clusterAutoscaling:

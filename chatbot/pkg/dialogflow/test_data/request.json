@@ -1,0 +1,86 @@
+{
+  "responseId": "071103df-35c0-43f1-8bfd-898ef58ec0bf-0f0e27e1",
+  "queryResult": {
+    "queryText": "Who owns jupyter?",
+    "parameters": {
+      "area": "jupyter",
+      "platform": ""
+    },
+    "allRequiredParamsPresent": true,
+    "fulfillmentText": "Sorry I don\u0027t know the answer",
+    "fulfillmentMessages": [{
+      "text": {
+        "text": ["Sorry I don\u0027t know the answer"]
+      }
+    }],
+    "outputContexts": [{
+      "name": "projects/kf-chat-bot/agent/sessions/90653e34-d9ed-3dbc-8ea5-cad6971952be/contexts/__system_counters__",
+      "parameters": {
+        "no-input": 0.0,
+        "no-match": 0.0,
+        "area": "jupyter",
+        "area.original": "jupyter",
+        "platform": "",
+        "platform.original": ""
+      }
+    }],
+    "intent": {
+      "name": "projects/kf-chat-bot/agent/intents/aff4b470-617c-47c5-833d-9e1e269c6e24",
+      "displayName": "find-owner"
+    },
+    "intentDetectionConfidence": 1.0,
+    "languageCode": "en"
+  },
+  "originalDetectIntentRequest": {
+    "source": "slack",
+    "payload": {
+      "data": {
+        "type": "event_callback",
+        "api_app_id": "A0144MM9WCS",
+        "token": "abcefj",
+        "event": {
+          "blocks": [{
+            "type": "rich_text",
+            "elements": [{
+              "elements": [{
+                "text": "Who owns jupyter?",
+                "type": "text"
+              }],
+              "type": "rich_text_section"
+            }],
+            "block_id": "FEa"
+          }],
+          "text": "Who owns jupyter?",
+          "channel_type": "im",
+          "event_ts": "1590278953.003400",
+          "team": "T7QLHSH6U",
+          "user": "U7QLP8YKA",
+          "client_msg_id": "7e223c77-9489-41fa-aed2-6195e56f2bde",
+          "channel": "D013ZF4GP0W",
+          "ts": "1590278953.003400",
+          "type": "message"
+        },
+        "event_id": "Ev013RFBK6TZ",
+        "authed_users": ["U014W2FSTT2"],
+        "event_time": "1590278953",
+        "team_id": "T7QLHSH6U"
+      }
+    }
+  },
+  "session": "projects/kf-chat-bot/agent/sessions/90653e34-d9ed-3dbc-8ea5-cad6971952be",
+  "alternativeQueryResults": [{
+    "queryText": "Who owns jupyter?",
+    "outputContexts": [{
+      "name": "projects/kf-chat-bot/agent/sessions/90653e34-d9ed-3dbc-8ea5-cad6971952be/contexts/__system_counters__",
+      "parameters": {
+        "no-input": 0.0,
+        "no-match": 0.0,
+        "area": "jupyter",
+        "area.original": "jupyter",
+        "platform": "",
+        "platform.original": ""
+      }
+    }],
+    "languageCode": "en"
+  }]
+}

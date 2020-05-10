@@ -12,5 +12,6 @@ commonLabels:
 resources:
 - ../../upstream/manifests/gcp/v2/cnrm
 - iam_policy.yaml
+- nodepool.yaml
 patchesStrategicMerge:
 - cluster_patch.yaml
