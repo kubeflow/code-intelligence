@@ -1,0 +1,39 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: install.istio.io/v1alpha2
+kind: IstioControlPlane
+metadata:
+  clusterName: "issue-label-bot-dev/us-central1/code-intelligence" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"},{"name":"name","value":"code-intelligence"},{"name":"location","value":"us-central1"}]}}
+spec:
+  profile: asm
+  hub: gcr.io/gke-release/asm
+  tag: 1.4.7-asm.0
+  values:
+    gateways:
+      istio-ingressgateway:
+        type: NodePort
+    global:
+      #meshID: "jlewi-dev_us-central1_kf-bp-0420-002" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"jlewi-dev"},{"name":"name","value":"kf-bp-0420-002"},{"name":"location","value":"us-central1"}]}}
+      meshID: "jlewi-dev_us-central1_kf-bp-0420-002" # 
+      trustDomain: "issue-label-bot-dev.svc.id.goog" # {"type":"string","x-kustomize":{"partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+      sds:
+        token:
+          aud: "issue-label-bot-dev.svc.id.goog" # {"type":"string","x-kustomize":{"partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+      proxy:
+        env:
+          GCP_METADATA: "issue-label-bot-dev|976279526634|code-intelligence|us-central1" # {"type":"string","x-kustomize":{"partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"},{"name":"gcloud.project.projectNumber","value":"976279526634"},{"name":"name","value":"code-intelligence"},{"name":"gcloud.compute.zone","value":"us-central1-c"}]}}
+    nodeagent:
+      env:
+        GKE_CLUSTER_URL: "https://container.googleapis.com/v1/projects/issue-label-bot-dev/locations/us-central1/clusters/code-intelligence" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"},{"name":"name","value":"code-intelligence"},{"name":"location","value":"us-central1"}]}}

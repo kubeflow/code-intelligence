@@ -1,0 +1,10 @@
+apiVersion: networking.gke.io/v1beta1
+kind: ManagedCertificate
+metadata:
+  labels:
+    kustomize.component: iap-ingress
+  name: gke-certificate
+  namespace: istio-system
+spec:
+  domains:
+  - code-intelligence.endpoints.issue-label-bot-dev.cloud.goog

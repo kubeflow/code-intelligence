@@ -1,0 +1,11 @@
+apiVersion: kpt.dev/v1alpha1
+kind: Kptfile
+metadata:
+    name: code-intelligence
+upstream:
+    type: git
+    git:
+        commit: 193ca31ca0e32dfe3af082546d55e871e8a99521
+        repo: https://github.com/jlewi/manifests
+        directory: /
+        ref: fix_annotations

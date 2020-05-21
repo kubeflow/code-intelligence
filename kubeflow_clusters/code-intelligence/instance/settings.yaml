@@ -1,0 +1,6 @@
+# Name of kubeconfig contexts for various 
+# TODO(jlewi): Add kpt setters?
+mgmt-ctxt: MANAGEMENT-CTXT # {"type":"string","x-kustomize":{"partialSetters":[{"name":"mgmt-ctxt","value":"MANAGEMENT-CTXT"}]}}
+project: issue-label-bot-dev # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+location: us-central1 # {"type":"string","x-kustomize":{"partialSetters":[{"name":"location","value":"us-central1"}]}}
+name: code-intelligence # {"type":"string","x-kustomize":{"partialSetters":[{"name":"name","value":"code-intelligence"}]}}

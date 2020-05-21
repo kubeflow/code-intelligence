@@ -1,0 +1,12 @@
+apiVersion: ctl.isla.solutions/v1
+kind: CloudEndpoint
+metadata:
+  labels:
+    kustomize.component: iap-ingress
+  name: code-intelligence
+  namespace: istio-system
+spec:
+  project: issue-label-bot-dev
+  targetIngress:
+    name: envoy-ingress
+    namespace: istio-system

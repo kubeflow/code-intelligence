@@ -1,0 +1,98 @@
+# GKE
+apiVersion: cnrm.cloud.google.com/v1alpha1
+kind: CloudService
+metadata:
+  name: gke
+  namespace: "issue-label-bot-dev" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+spec:
+  service: container.googleapis.com
+---
+apiVersion: cnrm.cloud.google.com/v1alpha1
+kind: CloudService
+metadata:
+  name: compute
+  namespace: "issue-label-bot-dev" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+spec:
+  service: compute.googleapis.com
+---
+apiVersion: cnrm.cloud.google.com/v1alpha1
+kind: CloudService
+metadata:
+  name: monitoring
+  namespace: "issue-label-bot-dev" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+spec:
+  service: monitoring.googleapis.com
+---
+apiVersion: cnrm.cloud.google.com/v1alpha1
+kind: CloudService
+metadata:
+  name: logging
+  namespace: "issue-label-bot-dev" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+spec:
+  service: logging.googleapis.com
+
+# TODO(jlewi): Does order matter?
+---
+apiVersion: cnrm.cloud.google.com/v1alpha1
+kind: CloudService
+metadata:
+  name: meshca
+  namespace: "issue-label-bot-dev" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+spec:
+  service: meshca.googleapis.com
+---
+apiVersion: cnrm.cloud.google.com/v1alpha1
+kind: CloudService
+metadata:
+  name: meshtelemetry
+  namespace: "issue-label-bot-dev" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+spec:
+  service: meshtelemetry.googleapis.com
+---
+apiVersion: cnrm.cloud.google.com/v1alpha1
+kind: CloudService
+metadata:
+  name: mesh
+  namespace: "issue-label-bot-dev" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+spec:
+  service: meshconfig.googleapis.com
+---
+apiVersion: cnrm.cloud.google.com/v1alpha1
+kind: CloudService
+metadata:
+  name: iamcredentials
+  namespace: "issue-label-bot-dev" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+spec:
+  service: iamcredentials.googleapis.com
+---
+apiVersion: cnrm.cloud.google.com/v1alpha1
+kind: CloudService
+metadata:
+  name: anthos
+  namespace: "issue-label-bot-dev" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+spec:
+  service: anthos.googleapis.com
+---
+apiVersion: cnrm.cloud.google.com/v1alpha1
+kind: CloudService
+metadata:
+  name: gkeconnect
+  namespace: "issue-label-bot-dev" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+spec:
+  service: gkeconnect.googleapis.com
+---
+apiVersion: cnrm.cloud.google.com/v1alpha1
+kind: CloudService
+metadata:
+  name: gkehub
+  namespace: "issue-label-bot-dev" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+spec:
+  service: gkehub.googleapis.com
+---
+apiVersion: cnrm.cloud.google.com/v1alpha1
+kind: CloudService
+metadata:
+  name: resourcemanager
+  namespace: "issue-label-bot-dev" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+spec:
+  service: cloudresourcemanager.googleapis.com

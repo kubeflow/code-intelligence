@@ -1,0 +1,10 @@
+apiVersion: v1
+data:
+  appName: code-intelligence # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+  hostname: code-intelligence.endpoints.issue-label-bot-dev.cloud.goog # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"},{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+  ipName: code-intelligence-ip # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+  project: "issue-label-bot-dev" # {"type":"string","x-kustomize":{"setBy":"kpt","setter":{"name":"gcloud.core.project","value":"issue-label-bot-dev"}}}
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: iap-ingress-config
