@@ -1,0 +1,20 @@
+apiVersion: configmanagement.gke.io/v1
+kind: ConfigManagement
+metadata:
+  name: config-management
+  annotations:
+    gke.io/cluster: "gke://issue-label-bot-dev/us-central1/code-intelligence" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"},{"name":"name","value":"code-intelligence"},{"name":"location","value":"us-central1"}]}}
+spec:
+  clusterName: "gke://issue-label-bot-dev/us-central1/code-intelligence" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"},{"name":"name","value":"code-intelligence"},{"name":"location","value":"us-central1"}]}}
+  git:
+    # TODO(jlewi): We should change this to branch master on kubeflow/code-intelligence
+    syncRepo: "https://github.com/jlewi/code-intelligence.git" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"source_repo","value":"https://github.com/jlewi/community-infra.git"}]}}    
+    syncBranch: chatbot
+    secretType: none
+    policyDir: "/kubeflow_clusters/code-intelligence/acm-repo" # {"$ref":"#/definitions/io.k8s.cli.setters.sync-repo-dir"}  
+  # We don't want to install cloud config connector
+  configConnector:
+    enabled: false
+  # We use an unstruuctured repository because we don't have good tools
+  # right now to reorganize our K8s resources in the layout required by structured repositories.
+  sourceFormat: unstructured

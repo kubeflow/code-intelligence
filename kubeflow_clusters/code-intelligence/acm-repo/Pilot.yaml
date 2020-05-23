@@ -1,0 +1,1098 @@
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app: pilot
+    release: istio
+  name: istio-pilot
+  namespace: istio-system
+spec:
+  maxReplicas: 5
+  metrics:
+  - resource:
+      name: cpu
+      targetAverageUtilization: 80
+    type: Resource
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: istio-pilot
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: istio-pilot-istio-system
+  labels:
+    app: pilot
+    release: istio
+rules:
+- apiGroups: ["config.istio.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["rbac.istio.io"]
+  resources: ["*"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["security.istio.io"]
+  resources: ["*"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["networking.istio.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["authentication.istio.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["*"]
+- apiGroups: ["extensions"]
+  resources: ["ingresses", "ingresses/status"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["create", "get", "list", "watch", "update"]
+- apiGroups: [""]
+  resources: ["endpoints", "pods", "services", "namespaces", "nodes", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create", "get", "watch", "list", "update", "delete"]
+- apiGroups: ["certificates.k8s.io"]
+  resources:
+  - "certificatesigningrequests"
+  - "certificatesigningrequests/approval"
+  - "certificatesigningrequests/status"
+  verbs: ["update", "create", "get", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: istio-pilot-istio-system
+  labels:
+    app: pilot
+    release: istio
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: istio-pilot-istio-system
+subjects:
+- kind: ServiceAccount
+  name: istio-pilot-service-account
+  namespace: istio-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: istio-system
+  name: pilot-envoy-config
+  labels:
+    release: istio
+data:
+  envoy.yaml.tmpl: |-
+    admin:
+      access_log_path: /dev/null
+      address:
+        socket_address:
+          address: 127.0.0.1
+          port_value: 15000
+
+    static_resources:
+      clusters:
+      - name: in.15010
+        http2_protocol_options: {}
+        connect_timeout: 1.000s
+
+        hosts:
+        - socket_address:
+            address: 127.0.0.1
+            port_value: 15010
+
+        circuit_breakers:
+          thresholds:
+          - max_connections: 100000
+            max_pending_requests: 100000
+            max_requests: 100000
+            max_retries: 3
+
+    # TODO: telemetry using EDS
+    # TODO: other pilots using EDS, load balancing
+    # TODO: galley using EDS
+
+      - name: out.galley.15019
+        http2_protocol_options: {}
+        connect_timeout: 1.000s
+        type: STRICT_DNS
+
+        circuit_breakers:
+          thresholds:
+            - max_connections: 100000
+              max_pending_requests: 100000
+              max_requests: 100000
+              max_retries: 3
+        hosts:
+          - socket_address:
+              address: istio-galley.istio-system
+              port_value: 15019
+        tls_context:
+          common_tls_context:
+            tls_certificate_sds_secret_configs:
+            - name: default
+              sds_config:
+                api_config_source:
+                  api_type: GRPC
+                  grpc_services:
+                  - google_grpc:
+                      target_uri: unix:/var/run/sds/uds_path
+                      channel_credentials:
+                        local_credentials: {}
+                      call_credentials:
+                      - from_plugin:
+                          name: envoy.grpc_credentials.file_based_metadata
+                          config:
+                            header_key: istio_sds_credentials_header-bin
+                            secret_data:
+                              filename: /var/run/secrets/tokens/istio-token
+                      credentials_factory_name: envoy.grpc_credentials.file_based_metadata
+                      stat_prefix: sdsstat
+            combined_validation_context:
+              default_validation_context:
+                verify_subject_alt_name:
+                - spiffe://issue-label-bot-dev.svc.id.goog/ns/istio-system/sa/istio-galley-service-account
+              validation_context_sds_secret_config:
+                name: ROOTCA
+                sds_config:
+                  api_config_source:
+                    api_type: GRPC
+                    grpc_services:
+                    - google_grpc:
+                        target_uri: unix:/var/run/sds/uds_path
+                        channel_credentials:
+                          local_credentials: {}
+                        call_credentials:
+                        - from_plugin:
+                            name: envoy.grpc_credentials.file_based_metadata
+                            config:
+                              header_key: istio_sds_credentials_header-bin
+                              secret_data:
+                                filename: /var/run/secrets/tokens/istio-token
+                        credentials_factory_name: envoy.grpc_credentials.file_based_metadata
+                        stat_prefix: sdsstat
+
+      listeners:
+      - name: "in.15011"
+        address:
+          socket_address:
+            address: 0.0.0.0
+            port_value: 15011
+        filter_chains:
+        - filters:
+          - name: envoy.http_connection_manager
+            #typed_config
+            #"@type": "type.googleapis.com/",
+            config:
+              codec_type: HTTP2
+              stat_prefix: "15011"
+              http2_protocol_options:
+                max_concurrent_streams: 1073741824
+
+              access_log:
+              - name: envoy.file_access_log
+                config:
+                  path: /dev/stdout
+
+              http_filters:
+              - name: envoy.router
+
+              route_config:
+                name: "15011"
+
+                virtual_hosts:
+                - name: istio-pilot
+
+                  domains:
+                  - '*'
+
+                  routes:
+                  - match:
+                      prefix: /
+                    route:
+                      cluster: in.15010
+                      timeout: 0.000s
+                    decorator:
+                      operation: xDS
+          tls_context:
+            common_tls_context:
+              alpn_protocols:
+              - h2
+              tls_certificate_sds_secret_configs:
+              - name: default
+                sds_config:
+                  api_config_source:
+                    api_type: GRPC
+                    grpc_services:
+                    - google_grpc:
+                        target_uri: unix:/var/run/sds/uds_path
+                        channel_credentials:
+                          local_credentials: {}
+                        call_credentials:
+                        - from_plugin:
+                            name: envoy.grpc_credentials.file_based_metadata
+                            config:
+                              header_key: istio_sds_credentials_header-bin
+                              secret_data:
+                                filename: /var/run/secrets/tokens/istio-token
+                        credentials_factory_name: envoy.grpc_credentials.file_based_metadata
+                        stat_prefix: sdsstat
+              combined_validation_context:
+                default_validation_context:
+                  verify_subject_alt_name: []
+                validation_context_sds_secret_config:
+                  name: ROOTCA
+                  sds_config:
+                    api_config_source:
+                      api_type: GRPC
+                      grpc_services:
+                      - google_grpc:
+                          target_uri: unix:/var/run/sds/uds_path
+                          channel_credentials:
+                            local_credentials: {}
+                          call_credentials:
+                          - from_plugin:
+                              name: envoy.grpc_credentials.file_based_metadata
+                              config:
+                                header_key: istio_sds_credentials_header-bin
+                                secret_data:
+                                  filename: /var/run/secrets/tokens/istio-token
+                          credentials_factory_name: envoy.grpc_credentials.file_based_metadata
+                          stat_prefix: sdsstat
+            require_client_certificate: true
+
+
+      # Manual 'whitebox' mode
+      - name: "local.15019"
+        address:
+          socket_address:
+            address: 127.0.0.1
+            port_value: 15019
+        filter_chains:
+          - filters:
+              - name: envoy.http_connection_manager
+                config:
+                  codec_type: HTTP2
+                  stat_prefix: "15019"
+                  http2_protocol_options:
+                    max_concurrent_streams: 1073741824
+
+                  access_log:
+                    - name: envoy.file_access_log
+                      config:
+                        path: /dev/stdout
+
+                  http_filters:
+                    - name: envoy.router
+
+                  route_config:
+                    name: "15019"
+
+                    virtual_hosts:
+                      - name: istio-galley
+
+                        domains:
+                          - '*'
+
+                        routes:
+                          - match:
+                              prefix: /
+                            route:
+                              cluster: out.galley.15019
+                              timeout: 0.000s
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio
+  namespace: istio-system
+  labels:
+    release: istio
+data:
+  meshNetworks: |-
+    # Network config
+    networks: {}
+  values.yaml: |-
+    appNamespaces: []
+    autoscaleEnabled: true
+    autoscaleMax: 5
+    autoscaleMin: 1
+    configMap: true
+    configNamespace: istio-config
+    cpu:
+      targetAverageUtilization: 80
+    enableProtocolSniffingForInbound: false
+    enableProtocolSniffingForOutbound: false
+    enabled: true
+    env: {}
+    image: pilot
+    ingress:
+      ingressClass: istio
+      ingressControllerMode: "OFF"
+      ingressService: istio-ingressgateway
+    keepaliveMaxServerConnectionAge: 30m
+    meshNetworks:
+      networks: {}
+    namespace: istio-system
+    nodeSelector: {}
+    plugins: []
+    podAnnotations: {}
+    podAntiAffinityLabelSelector: []
+    podAntiAffinityTermLabelSelector: []
+    policy:
+      enabled: false
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2048Mi
+    rollingMaxSurge: 100%
+    rollingMaxUnavailable: 25%
+    tolerations: []
+    traceSampling: 1
+    useMCP: true
+  mesh: |-
+    # Set enableTracing to false to disable request tracing.
+    enableTracing: true
+
+    # Set accessLogFile to empty string to disable access log.
+    accessLogFile: ""
+
+    accessLogFormat: ""
+
+    accessLogEncoding: 'TEXT'
+
+    enableEnvoyAccessLogService: false
+    # reportBatchMaxEntries is the number of requests that are batched before telemetry data is sent to the mixer server
+    reportBatchMaxEntries: 100
+    # reportBatchMaxTime is the max waiting time before the telemetry data of a request is sent to the mixer server
+    reportBatchMaxTime: 1s
+    disableMixerHttpReports: true
+
+    disablePolicyChecks: true
+
+    # Automatic protocol detection uses a set of heuristics to
+    # determine whether the connection is using TLS or not (on the
+    # server side), as well as the application protocol being used
+    # (e.g., http vs tcp). These heuristics rely on the client sending
+    # the first bits of data. For server first protocols like MySQL,
+    # MongoDB, etc., Envoy will timeout on the protocol detection after
+    # the specified period, defaulting to non mTLS plain TCP
+    # traffic. Set this field to tweak the period that Envoy will wait
+    # for the client to send the first bits of data. (MUST BE >=1ms)
+    protocolDetectionTimeout: 0s
+
+    # This is the k8s ingress service name, update if you used a different name
+    ingressService: "istio-ingressgateway"
+    ingressControllerMode: "OFF"
+    ingressClass: "istio"
+
+    # The trust domain corresponds to the trust root of a system.
+    # Refer to https://github.com/spiffe/spiffe/blob/master/standards/SPIFFE-ID.md#21-trust-domain
+    trustDomain: "issue-label-bot-dev.svc.id.goog"
+
+    #  The trust domain aliases represent the aliases of trust_domain.
+    #  For example, if we have
+    #  trustDomain: td1
+    #  trustDomainAliases: [“td2”, "td3"]
+    #  Any service with the identity "td1/ns/foo/sa/a-service-account", "td2/ns/foo/sa/a-service-account",
+    #  or "td3/ns/foo/sa/a-service-account" will be treated the same in the Istio mesh.
+    trustDomainAliases:
+    # Unix Domain Socket through which envoy communicates with NodeAgent SDS to get
+    # key/cert for mTLS. Use secret-mount files instead of SDS if set to empty.
+    sdsUdsPath: "unix:/var/run/sds/uds_path"
+
+    # If true, automatically configure client side mTLS settings to match the corresponding service's
+    # server side mTLS authentication policy, when destination rule for that service does not specify
+    # TLS settings.
+    enableAutoMtls: false
+    config_sources:
+    - address: localhost:15019
+
+    outboundTrafficPolicy:
+      mode: ALLOW_ANY
+
+    # Configures DNS certificates provisioned through Chiron linked into Pilot.
+    # The DNS certificate provisioning is enabled by default now so it get tested.
+    # TODO (lei-tang): we'll decide whether enable it by default or not before Istio 1.4 Release.
+    certificates:
+      - dnsNames:
+        - istio-galley.istio-system.svc
+        - istio-galley.istio-system
+        secretName: dns.istio-galley-service-account
+      - dnsNames:
+        - istio-sidecar-injector.istio-system.svc
+        - istio-sidecar-injector.istio-system
+        secretName: dns.istio-sidecar-injector-service-account
+
+    defaultConfig:
+      #
+      # TCP connection timeout between Envoy & the application, and between Envoys.
+      connectTimeout: 10s
+      #
+      ### ADVANCED SETTINGS #############
+      # Where should envoy's configuration be stored in the istio-proxy container
+      configPath: "/etc/istio/proxy"
+      # The pseudo service name used for Envoy.
+      serviceCluster: istio-proxy
+      # These settings that determine how long an old Envoy
+      # process should be kept alive after an occasional reload.
+      drainDuration: 45s
+      parentShutdownDuration: 1m0s
+      #
+      # Port where Envoy listens (on local host) for admin commands
+      # You can exec into the istio-proxy container in a pod and
+      # curl the admin port (curl http://localhost:15000/) to obtain
+      # diagnostic information from Envoy. See
+      # https://lyft.github.io/envoy/docs/operations/admin.html
+      # for more details
+      proxyAdminPort: 15000
+      #
+      # Set concurrency to a specific number to control the number of Proxy worker threads.
+      # If set to 0 (default), then start worker thread for each CPU thread/core.
+      concurrency: 2
+      #
+      tracing:
+        zipkin:
+          # Address of the Zipkin collector
+          address: zipkin.istio-system:9411
+      #
+      # Mutual TLS authentication between sidecars and istio control plane.
+      controlPlaneAuthPolicy: MUTUAL_TLS
+      #
+      # Address where istio Pilot service is running
+      discoveryAddress: istio-pilot.istio-system:15011
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: pilot
+    istio: pilot
+    release: istio
+  name: istio-pilot
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      istio: pilot
+  strategy:
+    rollingUpdate:
+      maxSurge: 100%
+      maxUnavailable: 25%
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        app: pilot
+        chart: pilot
+        heritage: Tiller
+        istio: pilot
+        release: istio
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+            weight: 2
+          - preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - ppc64le
+            weight: 2
+          - preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - s390x
+            weight: 2
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - ppc64le
+                - s390x
+      containers:
+      - args:
+        - discovery
+        - --monitoringAddr=:15014
+        - --log_output_level=default:info
+        - --domain
+        - cluster.local
+        - --secureGrpcAddr
+        - ""
+        - --trust-domain=issue-label-bot-dev.svc.id.goog
+        - --keepaliveMaxServerConnectionAge
+        - 30m
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: PILOT_TRACE_SAMPLING
+          value: "1"
+        - name: CONFIG_NAMESPACE
+          value: istio-config
+        - name: PILOT_ENABLE_PROTOCOL_SNIFFING_FOR_OUTBOUND
+          value: "false"
+        - name: PILOT_ENABLE_PROTOCOL_SNIFFING_FOR_INBOUND
+          value: "false"
+        image: gcr.io/gke-release/asm/pilot:1.4.7-asm.0
+        imagePullPolicy: IfNotPresent
+        name: discovery
+        ports:
+        - containerPort: 8080
+        - containerPort: 15010
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 30
+          timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: 2000m
+            memory: 2048Mi
+        volumeMounts:
+        - mountPath: /etc/istio/config
+          name: config-volume
+      - args:
+        - proxy
+        - --domain
+        - $(POD_NAMESPACE).svc.cluster.local
+        - --serviceCluster
+        - istio-pilot
+        - --templateFile
+        - /var/lib/envoy/envoy.yaml.tmpl
+        - --controlPlaneAuthPolicy
+        - MUTUAL_TLS
+        - --trust-domain=issue-label-bot-dev.svc.id.goog
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: INSTANCE_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: SDS_ENABLED
+          value: "true"
+        image: gcr.io/gke-release/asm/proxyv2:1.4.7-asm.0
+        imagePullPolicy: IfNotPresent
+        name: istio-proxy
+        ports:
+        - containerPort: 15011
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 1024Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - mountPath: /var/lib/envoy
+          name: pilot-envoy-config
+        - mountPath: /var/run/sds
+          name: sds-uds-path
+          readOnly: true
+        - mountPath: /var/run/secrets/tokens
+          name: istio-token
+      serviceAccountName: istio-pilot-service-account
+      volumes:
+      - hostPath:
+          path: /var/run/sds
+        name: sds-uds-path
+      - name: istio-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: issue-label-bot-dev.svc.id.goog
+              expirationSeconds: 43200
+              path: istio-token
+      - configMap:
+          name: istio
+        name: config-volume
+      - configMap:
+          name: pilot-envoy-config
+        name: pilot-envoy-config
+---
+apiVersion: "authentication.istio.io/v1alpha1"
+kind: "MeshPolicy"
+metadata:
+  name: "default"
+  labels:
+    release: istio
+spec:
+  peers:
+  - mtls:
+      mode: PERMISSIVE
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: istio-pilot
+  namespace: istio-system
+  labels:
+    app: pilot
+    release: istio
+    istio: pilot
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: pilot
+      release: istio
+      istio: pilot
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: promsd-istio-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  - services
+  - endpoints
+  - pods
+  - nodes/proxy
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promsd
+  namespace: istio-system
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+    k8s-app: istio
+  name: promsd-istio-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: promsd-istio-system
+subjects:
+- kind: ServiceAccount
+  name: promsd
+  namespace: istio-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promsd
+  namespace: istio-system
+data:
+  prometheus.yml: |-
+    global:
+      scrape_interval: 15s
+    rule_files:
+    - '/etc/prometheus-rules/rules.yml'
+    scrape_configs:
+    - job_name: 'pilot'
+      # Override the global default and scrape targets from this job every 5 seconds.
+      scrape_interval: 5s
+      # metrics_path defaults to '/metrics'
+      # scheme defaults to 'http'.
+      kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+          - istio-system
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: istio-pilot;http-monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promsd-rules
+  namespace: istio-system
+data:
+  rules.yml: |-
+    groups:
+    - name: recording_rules
+      rules:
+        - record: pilot_config_push_latency
+          expr: pilot_proxy_convergence_time_bucket
+        - record: pilot_xds_push_timeouts
+          expr: pilot_xds_push_context_errors
+        - record: pilot_errors_xds
+          expr: >
+            pilot_duplicate_envoy_clusters + pilot_conflict_outbound_listener_http_over_current_tcp
+            + pilot_conflict_outbound_listener_http_over_https + pilot_conflict_outbound_listener_tcp_over_current_http
+            + pilot_conflict_outbound_listener_tcp_over_current_tcp
+            + pilot_eds_no_instances + pilot_endpoint_not_ready
+            + pilot_total_xds_internal_errors + pilot_total_xds_rejects
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promsd-sidecar
+  namespace: istio-system
+data:
+  sidecar.yml: |-
+    static_metadata:
+    - metric: pilot_xds_pushes
+      type: counter
+    - metric: pilot_config_push_latency
+      type: histogram
+    - metric: pilot_xds_push_timeouts
+      type: counter
+    - metric: pilot_errors_xds
+      type: counter
+    - metric: pilot_errors_internal
+      type: counter
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+  labels:
+    app: promsd
+  name: promsd
+  namespace: istio-system
+spec:
+  ports:
+  - name: http-prometheus
+    port: 9090
+    protocol: TCP
+  selector:
+    app: promsd
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: promsd
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      app: promsd
+  template:
+    metadata:
+      labels:
+        app: promsd
+      annotations:
+        seccomp.security.alpha.kubernetes.io/pod: 'docker/default'
+        sidecar.istio.io/inject: "false"
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+    spec:
+      serviceAccountName: promsd
+      containers:
+      - args:
+        - --prometheus.wal-directory=/data/wal
+        - --stackdriver.project-id=
+        - --stackdriver.kubernetes.location=
+        - --stackdriver.kubernetes.cluster-name=
+        - --stackdriver.use-gke-resource
+        - --stackdriver.metrics-prefix=container.googleapis.com/internal/addons/istio
+        - --config-file=/etc/prometheus-sidecar/sidecar.yml
+        - --filter=__name__=~"^(pilot_xds_pushes|pilot_xds_push_timeouts|pilot_errors_xds)$"
+        image: "gcr.io/gke-release/asm/stackdriver-prometheus-sidecar:1.4.7-asm.0"
+        env:
+        - name: DEBUG
+          value: "1"
+        imagePullPolicy: Always
+        name: sidecar
+        ports:
+        - containerPort: 9091
+          name: sidecar
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /data
+          name: data-volume
+        - mountPath: /etc/prometheus-sidecar
+          name: static-config-volume
+      - args:
+        - --storage.tsdb.retention=6h
+        - --storage.tsdb.path=/data
+        - --storage.tsdb.min-block-duration=15m
+        - --storage.tsdb.max-block-duration=4h
+        - --config.file=/etc/prometheus/prometheus.yml
+        image: "gcr.io/gke-release/asm/prometheus:1.4.7-asm.0"
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /-/healthy
+            port: 9090
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: promsd
+        ports:
+        - containerPort: 9090
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /-/ready
+            port: 9090
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/prometheus
+          name: config-volume
+        - mountPath: /etc/prometheus-rules
+          name: rules-config-volume
+        - mountPath: /etc/istio-certs
+          name: istio-certs
+        - mountPath: /data
+          name: data-volume
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: promsd
+        name: config-volume
+      - configMap:
+          defaultMode: 420
+          name: promsd-rules
+        name: rules-config-volume
+      - emptyDir: {}
+        name: data-volume
+      - configMap:
+          defaultMode: 420
+          name: promsd-sidecar
+        name: static-config-volume
+      - name: istio-certs
+        secret:
+          defaultMode: 420
+          optional: true
+          secretName: istio.default
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - ppc64le
+                - s390x
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 2
+            preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+          - weight: 2
+            preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - ppc64le
+          - weight: 2
+            preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - s390x
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: istio-pilot
+  namespace: istio-system
+  labels:
+    app: pilot
+    release: istio
+    istio: pilot
+spec:
+  ports:
+  - port: 15010
+    name: grpc-xds # direct
+  - port: 15011
+    name: https-xds # mTLS
+  - port: 8080
+    name: http-legacy-discovery # direct
+  - port: 15014
+    name: http-monitoring
+  selector:
+    istio: pilot
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: istio-pilot-service-account
+  namespace: istio-system
+  labels:
+    app: pilot
+    release: istio
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: metadata-exchange-1.4
+  namespace: istio-system
+spec:
+  configPatches:
+  - applyTo: HTTP_FILTER
+    match:
+      context: ANY # inbound, outbound, and gateway
+      proxy:
+        proxyVersion: '1\.4.*'
+      listener:
+        filterChain:
+          filter:
+            name: "envoy.http_connection_manager"
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.wasm
+        config:
+          config:
+            configuration: envoy.wasm.metadata_exchange
+            vm_config:
+              runtime: envoy.wasm.runtime.null
+              code:
+                inline_string: envoy.wasm.metadata_exchange
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: stackdriver-filter-1.4
+  namespace: istio-system
+spec:
+  configPatches:
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_OUTBOUND
+      proxy:
+        proxyVersion: '1\.4.*'
+      listener:
+        filterChain:
+          filter:
+            name: "envoy.http_connection_manager"
+            subFilter:
+              name: "envoy.router"
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.wasm
+        config:
+          config:
+            root_id: stackdriver_outbound
+            configuration: |
+              {"enable_mesh_edges_reporting": true, "disable_server_access_logging": false, "meshEdgesReportingDuration": "600s"}
+            vm_config:
+              vm_id: stackdriver_outbound
+              runtime: envoy.wasm.runtime.null
+              code:
+                inline_string: envoy.wasm.null.stackdriver
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND
+      proxy:
+        proxyVersion: '1\.4.*'
+      listener:
+        filterChain:
+          filter:
+            name: "envoy.http_connection_manager"
+            subFilter:
+              name: "envoy.router"
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.wasm
+        config:
+          config:
+            root_id: stackdriver_inbound
+            configuration: |
+              {"enable_mesh_edges_reporting": true, "disable_server_access_logging": false, "meshEdgesReportingDuration": "600s"}
+            vm_config:
+              vm_id: stackdriver_inbound
+              runtime: envoy.wasm.runtime.null
+              code:
+                inline_string: envoy.wasm.null.stackdriver
+  - applyTo: HTTP_FILTER
+    match:
+      context: GATEWAY
+      proxy:
+        proxyVersion: '1\.4.*'
+      listener:
+        filterChain:
+          filter:
+            name: "envoy.http_connection_manager"
+            subFilter:
+              name: "envoy.router"
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.wasm
+        config:
+          config:
+            root_id: stackdriver_outbound
+            configuration: |
+              {"enable_mesh_edges_reporting": true, "disable_server_access_logging": false, "meshEdgesReportingDuration": "600s", "disable_host_header_fallback": true}
+            vm_config:
+              vm_id: stackdriver_outbound
+              runtime: envoy.wasm.runtime.null
+              code:
+                inline_string: envoy.wasm.null.stackdriver

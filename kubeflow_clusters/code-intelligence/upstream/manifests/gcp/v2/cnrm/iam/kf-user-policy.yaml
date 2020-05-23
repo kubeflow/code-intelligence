@@ -1,0 +1,143 @@
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicyMember
+metadata:
+  name: code-intelligence-user-cloudbuild # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+spec:
+  member: serviceAccount:code-intelligence-user@issue-label-bot-dev.iam.gserviceaccount.com # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"},{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+  role: roles/cloudbuild.builds.editor
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: projects/issue-label-bot-dev # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicyMember
+metadata:
+  name: code-intelligence-user-viewer # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+spec:
+  member: serviceAccount:code-intelligence-user@issue-label-bot-dev.iam.gserviceaccount.com # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"},{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+  role: roles/viewer
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: projects/issue-label-bot-dev # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicyMember
+metadata:
+  name: code-intelligence-user-source # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+spec:
+  member: serviceAccount:code-intelligence-user@issue-label-bot-dev.iam.gserviceaccount.com # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"},{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+  role: roles/source.admin
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: projects/issue-label-bot-dev # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicyMember
+metadata:
+  name: code-intelligence-user-storage # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+spec:
+  member: serviceAccount:code-intelligence-user@issue-label-bot-dev.iam.gserviceaccount.com # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"},{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+  role: roles/storage.admin
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: projects/issue-label-bot-dev # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicyMember
+metadata:
+  name: code-intelligence-user-bigquery # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+spec:
+  member: serviceAccount:code-intelligence-user@issue-label-bot-dev.iam.gserviceaccount.com # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"},{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+  role: roles/bigquery.admin
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: projects/issue-label-bot-dev # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicyMember
+metadata:
+  name: code-intelligence-user-dataflow # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+spec:
+  member: serviceAccount:code-intelligence-user@issue-label-bot-dev.iam.gserviceaccount.com # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"},{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+  role: roles/dataflow.admin
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: projects/issue-label-bot-dev # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicyMember
+metadata:
+  name: code-intelligence-user-ml # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+spec:
+  member: serviceAccount:code-intelligence-user@issue-label-bot-dev.iam.gserviceaccount.com # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"},{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+  role: roles/ml.admin
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: projects/issue-label-bot-dev # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicyMember
+metadata:
+  name: code-intelligence-user-dataproc # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+spec:
+  member: serviceAccount:code-intelligence-user@issue-label-bot-dev.iam.gserviceaccount.com # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"},{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+  role: roles/dataproc.editor
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: projects/issue-label-bot-dev # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicyMember
+metadata:
+  name: code-intelligence-user-cloudsql # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+spec:
+  member: serviceAccount:code-intelligence-user@issue-label-bot-dev.iam.gserviceaccount.com # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"},{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+  role: roles/cloudsql.admin
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: projects/issue-label-bot-dev # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicyMember
+metadata:
+  name: code-intelligence-user-logging # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+spec:
+  member: serviceAccount:code-intelligence-user@issue-label-bot-dev.iam.gserviceaccount.com # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"},{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+  role: roles/logging.logWriter
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: projects/issue-label-bot-dev # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicyMember
+metadata:
+  name: code-intelligence-user-metricwriter # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+spec:
+  member: serviceAccount:code-intelligence-user@issue-label-bot-dev.iam.gserviceaccount.com # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"},{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+  role: roles/monitoring.metricWriter
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: projects/issue-label-bot-dev # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicyMember
+metadata:
+  name: code-intelligence-user-monitoringviewer # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"}]}}
+spec:
+  member: serviceAccount:code-intelligence-user@issue-label-bot-dev.iam.gserviceaccount.com # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"name","value":"code-intelligence"},{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}
+  role: roles/monitoring.viewer
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: projects/issue-label-bot-dev # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"gcloud.core.project","value":"issue-label-bot-dev"}]}}

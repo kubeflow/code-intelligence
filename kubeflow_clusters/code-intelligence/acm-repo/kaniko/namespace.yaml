@@ -1,0 +1,10 @@
+# Create a namespace for the development chatbot.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kaniko
+  labels:
+    # Disable istio sidecar injection because that interferes with
+    # kaniko
+    istio-injection: disabled
+

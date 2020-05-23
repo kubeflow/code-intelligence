@@ -1,0 +1,11 @@
+apiVersion: kpt.dev/v1alpha1
+kind: Kptfile
+metadata:
+    name: code-intelligence
+upstream:
+    type: git
+    git:
+        commit: 6f16dce8033c71dfe92d26075c62529a74d3097e
+        repo: https://github.com/kubeflow/gcp-blueprints
+        directory: /kubeflow
+        ref: master

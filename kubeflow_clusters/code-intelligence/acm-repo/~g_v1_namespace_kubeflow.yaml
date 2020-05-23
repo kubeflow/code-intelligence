@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: kubeflow
+    katib-metricscollector-injection: enabled
+  name: kubeflow
