@@ -12,6 +12,8 @@ type Intent struct {
 
 type QueryResult struct {
 	Intent Intent `json:"intent"`
+	QueryText string `json:"queryText"`
+	Parameters map[string]string `json:"parameters"`
 }
 
 type Text struct {
@@ -31,7 +33,15 @@ type WebhookRequest struct {
 	Session     string      `json:"session"`
 	ResponseID  string      `json:"responseId"`
 	QueryResult QueryResult `json:"queryResult"`
+	OriginalDetectIntentRequest OriginalDetectIntentRequest `json:"originalDetectIntentRequest"`
 }
+
+type OriginalDetectIntentRequest struct {
+	Source string `json:"source"`
+	Version string `json:"version"`
+	Payload interface{}
+}
+
 
 // WebhookResponse is used to marshal a WebhookResponse JSON object. Note that
 // not all members need to be defined--just those that you need to process.
@@ -41,7 +51,6 @@ type WebhookRequest struct {
 type WebhookResponse struct {
 	FulfillmentMessages []Message `json:"fulfillmentMessages"`
 }
-
 
 // DialogFlowWebhookService defines an interface for handling Dialgflow webhook fulfillments.
 // https://cloud.google.com/dialogflow/docs/fulfillment-webhook#go

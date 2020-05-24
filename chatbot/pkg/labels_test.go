@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func Test_PaseLabels(t *testing.T) {
+func Test_ParseLabels(t *testing.T) {
 	wd , err := os.Getwd()
 
 	if err != nil {

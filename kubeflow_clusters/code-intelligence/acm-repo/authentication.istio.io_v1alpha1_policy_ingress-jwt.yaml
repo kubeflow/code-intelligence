@@ -8,8 +8,16 @@ metadata:
 spec:
   origins:
   - jwt:
+      issuer: jlewi@google.com
+      jwksUri: https://storage.googleapis.com/issue-label-bot-dev_public/chatbot/keys/jwk-sig-chatbot-pub.jwk
       audiences:
-      - /projects/976279526634/global/backendServices/8988274149225518131
+      - kubeflow-chatbot
+      trigger_rules:
+      - included_paths:
+        - prefix: /chatbot
+  - jwt:    
+      audiences:
+      - /projects/976279526634/global/backendServices/9003463958197541329
       issuer: https://cloud.google.com/iap
       jwksUri: https://www.gstatic.com/iap/verify/public_key-jwk
       jwtHeaders:
@@ -17,7 +25,6 @@ spec:
       trigger_rules:
       - excluded_paths:
         - exact: /healthz/ready
-        - prefix: /.well-known/acme-challenge
   principalBinding: USE_ORIGIN
   targets:
   - name: istio-ingressgateway

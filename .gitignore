@@ -21,3 +21,4 @@ py/code_intelligence/.data/**
 **/.ipynb_checkpoints/
 # TODO(jlewi): Is this a remote module? Why is the fairing src getting cloned here?
 Label_Microservice/src/**
+chatbot/cmd/jwt/jwt

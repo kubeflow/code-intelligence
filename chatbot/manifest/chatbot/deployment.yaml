@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server
+spec:
+  # We only need and want a single replica.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chatbot
+  template:
+    metadata:
+      labels:
+        app: chatbot
+    spec:
+      containers:
+      - name: management-context
+        image: gcr.io/issue-label-bot-dev/chatbot/server
+        command:
+          - /server
+          - --area-config-path=https://raw.githubusercontent.com/kubeflow/community/master/labels-owners.yaml
+          - --port=80

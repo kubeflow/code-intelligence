@@ -14,6 +14,11 @@ spec:
   - host: code-intelligence.endpoints.issue-label-bot-dev.cloud.goog
     http:
       paths:
+      # A subpath for Dialgoflow that won't have IAP.
+      - backend:
+          serviceName: chatbot-ingressgateway
+          servicePort: 80
+        path: /chatbot/*
       - backend:
           serviceName: istio-ingressgateway
           servicePort: 80

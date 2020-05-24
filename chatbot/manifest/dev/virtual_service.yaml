@@ -1,0 +1,23 @@
+# There needs to be a different virtual service for every namespace because
+# the destination host will depend on the namespace.
+# We can't use an overlay because http is a list so the entire item gets overwritten.
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: server
+spec:
+  gateways:
+  - istio-system/ingressgateway
+  hosts:
+  - '*'
+  http:
+  - match:
+    - uri:
+        prefix: /chatbot/dev/
+    rewrite:
+      uri: /
+    route:
+    - destination:        
+        host: server.chatbot-dev.svc.cluster.local
+        port:
+          number: 80

@@ -1,0 +1,51 @@
+# This YAML file defines the resources needed to create a non IAP ingress
+# gateway for use with Dialogflow webhooks
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    beta.cloud.google.com/backend-config: '{"ports": {"http2":"chatbot-backendconfig"}}'
+  name: chatbot-ingressgateway
+  namespace: istio-system
+  labels:
+    app: istio-ingressgateway
+    release: istio
+    istio: ingressgateway
+spec:
+  type: NodePort
+  selector:
+    app: istio-ingressgateway
+  ports:
+  - name: status-port
+    port: 15020
+    targetPort: 15020
+  - name: http2
+    port: 80
+    targetPort: 80
+  - name: https
+    port: 443
+  - name: kiali
+    port: 15029
+    targetPort: 15029
+  - name: prometheus
+    port: 15030
+    targetPort: 15030
+  - name: grafana
+    port: 15031
+    targetPort: 15031
+  - name: tracing
+    port: 15032
+    targetPort: 15032
+  - name: tls
+    port: 15443
+    targetPort: 15443
+---
+
+apiVersion: cloud.google.com/v1beta1
+kind: BackendConfig
+metadata:
+  labels:
+    kustomize.component: iap-ingress
+  name: chatbot-backendconfig
+  namespace: istio-system
