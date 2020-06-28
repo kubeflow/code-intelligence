@@ -24,7 +24,9 @@ def get_issues(login, project, max_age_days=None):
         org.login,
         type,
     FROM `githubarchive.month.20*`
-    WHERE  (type="IssuesEvent" or type="IssueCommentEvent") and org.login = '{login}'"""
+    WHERE  (type="IssuesEvent" or type="IssueCommentEvent") and org.login = '{login}'
+    and _TABLE_SUFFIX >= '1800' """
+    
   
   if max_age_days:
     # We need to convert the created_at field to a timestamp.
