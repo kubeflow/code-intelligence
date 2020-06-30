@@ -1,0 +1,1 @@
+{"builds":[{"imageName":"gcr.io/issue-label-bot-dev/bot-worker","tag":"gcr.io/issue-label-bot-dev/bot-worker:f0bf8d1-dirty@sha256:2faaf9d94c9beba082f184790770d1d08cb06a94b1ad4a8e797033f0bccb4cf7"}]}

@@ -1,4 +1,6 @@
 import logging
+import os
+import yaml
 
 from code_intelligence import github_app
 from code_intelligence import graphql
@@ -9,9 +11,6 @@ from label_microservice import combined_model
 from label_microservice import universal_kind_label_model as universal_model
 
 UNIVERSAL_MODEL_NAME = "universal"
-
-# TODO(jlewi): Lets not hardcode this.
-KUBEFLOW_AUTOML_MODEL = "projects/976279526634/locations/us-central1/models/TCN654213816573231104"
 
 def _combined_model_name(org, repo=None):
   """Return the name of the combined model for a repo or organization.
@@ -61,19 +60,31 @@ class IssueLabelPredictor:
     logging.info("Loading the universal model")
     self._models[UNIVERSAL_MODEL_NAME] = universal_model.UniversalKindLabelModel()
 
-    # TODO(jlewi): How should we get a list of all models for which we
-    # have repo or org specific models. mlbot is doing this based on a config
-    # file; https://github.com/machine-learning-apps/Issue-Label-Bot/blob/26d8fb65be3b39de244c4be9e32b2838111dac10/flask_app/forward_utils.py#L5  # pylint: disable=line-too-long
-    for org in ["kubeflow"]:
-      logging.info(f"Loading AutoML model for org: {org}; model: {KUBEFLOW_AUTOML_MODEL}")
+    model_config_path = os.getenv("MODEL_CONFIG")
 
-      org_model = automl_model.AutoMLModel(model_name=KUBEFLOW_AUTOML_MODEL)
+    if model_config_path:
+      logging.info(f"Loading model config from {model_config_path}")
+      with open(model_config_path) as fh:
+        model_config = yaml.load(fh)
+    else:
+      logging.info("Environment variable MODEL_CONFIG not set; no config "
+                   "loaded.")
 
-      self._models[f"{org}"] = org_model
+    for org in model_config.get("orgs", []):
+      org_name = org.get("name")
+      logging.info(f"Processing model config for org: {org_name}")
+      if org.get("automl_model"):
+        model = org.get("automl_model")
+        logging.info(f"Loading AutoML model for org: {org_name}; "
+                     f"model: {model}")
 
-      combined = combined_model.CombinedLabelModels(
-              models=[self._models["universal"], org_model])
-      self._models[_combined_model_name(org)] = combined
+        org_model = automl_model.AutoMLModel(model_name=model)
+
+        self._models[f"{org_name}"] = org_model
+
+        combined = combined_model.CombinedLabelModels(
+                models=[self._models["universal"], org_model])
+        self._models[_combined_model_name(org_name)] = combined
 
 
   def predict_labels_for_data(self, model_name, org, repo, title, text,

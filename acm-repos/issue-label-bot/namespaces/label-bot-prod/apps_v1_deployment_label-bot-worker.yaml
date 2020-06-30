@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -42,18 +42,26 @@ spec:
           value: "27079"
         - name: GITHUB_APP_PEM_KEY
           value: /var/secrets/github/issue-label-bot-github-app.private-key.pem
-        image: gcr.io/issue-label-bot-dev/bot-worker:6848ad6
+        - name: MODEL_CONFIG
+          value: /var/config/model_config.yaml
+        image: gcr.io/issue-label-bot-dev/bot-worker:f0bf8d1-dirty@sha256:2faaf9d94c9beba082f184790770d1d08cb06a94b1ad4a8e797033f0bccb4cf7
         name: app
         resources:
           requests:
             cpu: "4"
             memory: 4Gi
         volumeMounts:
+        - mountPath: /var/config
+          name: config
+          readOnly: true
         - mountPath: /var/secrets/github
           name: github-app
       restartPolicy: Always
       serviceAccountName: default-editor
       volumes:
+      - configMap:
+          name: label-bot-model-config-7fdmtg95kc
+        name: config
       - name: github-app
         secret:
           secretName: github-app

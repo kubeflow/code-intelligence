@@ -7,7 +7,8 @@ patchesStrategicMerge:
 - deployments.yaml
 resources:
 - ../../base
+- namespace.yaml
 images:
-- name: gcr.io/issue-label-bot-dev/bot-worker
-  newName: gcr.io/issue-label-bot-dev/bot-worker
-  newTag: 6848ad6
+- digest: sha256:2faaf9d94c9beba082f184790770d1d08cb06a94b1ad4a8e797033f0bccb4cf7
+  name: gcr.io/issue-label-bot-dev/bot-worker
+  newName: gcr.io/issue-label-bot-dev/bot-worker:f0bf8d1-dirty

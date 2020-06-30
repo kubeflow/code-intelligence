@@ -19,7 +19,7 @@ import retrying
 import subprocess
 import sys
 
-DEFAULT_APP_URL = "https://github.com/marketplace/issue-label-bot"
+DEFAULT_APP_URL = "https://label-bot-prod.mlbot.net/"
 
 # Repo containing org wide config
 ORG_CONFIG_REPO = ".github"

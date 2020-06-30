@@ -84,8 +84,8 @@ The following describes the GCP projects and clusters where the two services are
 1. Repo-specific label microservice
     - **repository**: [kubeflow/code-intelligence](https://github.com/kubeflow/code-intelligence/tree/master/Label_Microservice)
     - **GCP project**: issue-label-bot-dev
-    - **cluster**: github-mlapp-test
-    - **namespace**: default
+    - **cluster**: label-bot-dev
+    - **namespace**: labelbot-dev
     - **yaml files**: [Label\_Microservice/deployment](https://github.com/kubeflow/code-intelligence/tree/master/Label_Microservice/deployment)
 
 1, GitHub bot - **kf-label-bot-dev**
@@ -95,6 +95,23 @@ The following describes the GCP projects and clusters where the two services are
 
 ## Instructions
 
+### Deploying
+
+#### Production instance
+
+1. Build a docker image and update the kustomization
+
+   ```
+   CONTEXT=<kube context> make update-image
+   ```
+
+#### Dev instance of the label bot worker
+
+Use skaffold
+
+```
+skaffold --kube-context=${KUBE_CONTEXT} dev -v info
+```
 ### Installation
 
 If you would like to install the new repo-specific label microservice to your repositories, you need to follow the procedures in [the doc](./docs/onboarding_new_repositories.md).
