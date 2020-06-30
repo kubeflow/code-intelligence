@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: worker
@@ -10,6 +10,9 @@ spec:
           app: worker          
       spec:
         volumes:
+        - name: config
+          configMap:
+            name: model-config
         - name: github-app
           secret:
             secretName: github-app
@@ -26,6 +29,9 @@ spec:
               memory: "4Gi"
               cpu: "4"                      
           volumeMounts:
+            - name: config
+              mountPath: /var/config
+              readOnly: true
             - name: github-app
               mountPath: /var/secrets/github
           env:
@@ -42,9 +48,8 @@ spec:
               value: "50112"         
             - name: GITHUB_APP_PEM_KEY
               value: /var/secrets/github/kf-label-bot-dev.private-key.pem
-            # TODO(jlewi):Not needed because we use workload identity
-            #- name: GOOGLE_APPLICATION_CREDENTIALS
-            #  value: /var/secrets/google/user-gcp-sa.json
+            - name: MODEL_CONFIG
+              value: /var/config/model_config.yaml
         restartPolicy: Always
         # We need to set a service account corresponding to workload
         # identity

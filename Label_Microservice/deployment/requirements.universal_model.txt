@@ -1,5 +1,9 @@
 # Requirements for the universal model.
 # These requirements are largely copied from
 # https://github.com/machine-learning-apps/Issue-Label-Bot/blob/master/deployment/Dockerfile
- h5py==2.9.0 
- ktext==0.34 
+h5py==2.9.0 
+# Newer versions of Keras appear to require TensorFlow 2.2
+Keras==2.3.1
+Keras-Applications==1.0.8
+Keras-Preprocessing==1.1.0
+ktext==0.34 

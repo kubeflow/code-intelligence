@@ -10,3 +10,7 @@ images:
 resources:
   - service.yaml
   - deployments.yaml
+configMapGenerator:
+  - name: model-config
+    files:
+      - configs/model_config.yaml
