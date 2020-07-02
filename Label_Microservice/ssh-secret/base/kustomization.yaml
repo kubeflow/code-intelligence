@@ -1,0 +1,14 @@
+# Generate ssh secrets to be used in auto updating the bot
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ssh-secret.yaml
+secretGenerator:
+  # generate a tls Secret
+- name: label-bot-ssh
+  behavior: merge
+  files:
+    - ssh-privatekey=/home/jlewi/.ssh/label_bot
+    - ssh-publickey=/home/jlewi/.ssh/label_bot.pub
+    - known_hosts=config/known_hosts
+  type: kubernetes.io/ssh-auth

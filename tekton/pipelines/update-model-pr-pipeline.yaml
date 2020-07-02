@@ -1,0 +1,49 @@
+# A pipeline to create a PR updating the model
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: update-model-pr
+spec:
+  params:
+  - name: automl-model
+    description: "The name of the automl-model to use in the form projects/${PROJECT}/locations/${LOCATION}/models/${ID}"
+    type: string
+  - name: branchName
+    type: string
+    description: The name to give to the branch to create
+  - name: fork
+    type: string
+    default: fork
+    description: The url of the remote repo for the fork
+  - name: forkName
+    type: string
+    default: fork
+    description: (Optional) The name to give to the remote repo for the fork
+  - name: upstreamName
+    type: string
+    default: origin
+    description: (Optional) The name of the remote repository corresponding to the
+      upstream URL
+  resources:
+  - name: repo
+    type: git
+  tasks:
+  # Build the docker image containing the source
+  - name: build-image
+    resources:
+      inputs:
+      - name: repo
+        resource: repo
+    params:
+    - name: automl-model
+      value: $(params.automl-model)
+    - name: branchName
+      value: $(params.branchName)
+    - name: fork
+      value: $(params.fork)
+    - name: forkName
+      value: $(params.forkName)
+    - name: upstreamName
+      value: $(params.upstreamName)
+    taskRef:
+      name: clone-modify-pr
