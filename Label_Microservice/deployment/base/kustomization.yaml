@@ -8,9 +8,9 @@ images:
 - name: gcr.io/issue-label-bot-dev/bot-worker
   newName: gcr.io/issue-label-bot-dev/bot-worker
 resources:
-  - service.yaml
-  - deployments.yaml
+- service.yaml
+- deployments.yaml
 configMapGenerator:
-  - name: model-config
-    files:
-      - configs/model_config.yaml
+- name: model-config
+  files:
+  - configs/model_config.yaml
