@@ -3,8 +3,7 @@ kind: Kustomization
 bases:
 - ../../base
 images:
-- #digest: sha256:cb2b2e604d4056b78ecd51d7113de04ebfa60e542310265b3871e7873417e34a
-  name: gcr.io/issue-label-bot-dev/bot-worker
+- name: gcr.io/issue-label-bot-dev/bot-worker #digest: sha256:cb2b2e604d4056b78ecd51d7113de04ebfa60e542310265b3871e7873417e34a
   #newName: gcr.io/issue-label-bot-dev/bot-worker:3a82547
 commonLabels:
   environment: dev

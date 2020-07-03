@@ -1,0 +1,14 @@
+apiVersion: kpt.dev/v1alpha1
+kind: Kptfile
+metadata:
+  name: .
+packageMetadata:
+  shortDescription: sample description
+openAPI:
+  definitions:
+    io.k8s.cli.setters.automl-model:
+      description: The full name of the AutoML model to use for label prediction
+      x-k8s-cli:
+        setter:
+          name: automl-model
+          value: projects/976279526634/locations/us-central1/models/TCN654213816573231104
