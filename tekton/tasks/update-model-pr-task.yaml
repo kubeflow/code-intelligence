@@ -1,0 +1,110 @@
+# A Tekton Task to update the model, and create a PR
+#
+# Modifications are based on running kpt set 
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: clone-modify-pr
+  annotations:
+    # This gets passed down to the individual pods
+    sidecar.istio.io/inject: "false"
+spec:
+  params:
+  - name: automl-model
+    description: "The name of the automl-model to use in the form projects/${PROJECT}/locations/${LOCATION}/models/${ID}"
+  - name: branchName
+    type: string
+    description: The name to give to the branch to create
+  - name: fork
+    type: string
+    default: fork
+    description: The url of the remote repo for the fork
+  - name: forkName
+    type: string
+    default: fork
+    description: (Optional) The name to give to the remote repo for the fork
+  - name: upstreamName
+    type: string
+    default: origin
+    description: (Optional) The name of the remote repository corresponding to the
+      upstream URL
+  - name: prctl-image
+    type: string
+    default: "gcr.io/kubeflow-images-public/prctl:7939a1d-dirty@sha256:50ddf9dc0871f12037bb787abce6a2c43ee62793daae0f8e8622cad2675f9ec2" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"prctl-image","value":"gcr.io/kubeflow-images-public/prctl:7939a1d-dirty@sha256:50ddf9dc0871f12037bb787abce6a2c43ee62793daae0f8e8622cad2675f9ec2"}]}}
+    description: The image containing prctl
+  - name: kpt-image
+    type: string
+    # Should be 0.30.1 kpt image
+    default: gcr.io/kpt-dev/kpt@sha256:8a621c8e4b4d1cf5ec71f43aa099c120a78291896664a2cdb2c965a5726479ad
+    description: kpt image to use
+  resources:
+    inputs:
+    - name: repo
+      type: git
+      description: The GitHub repo containing the code to modify
+  steps:
+  # Create a branch
+  - name: branch
+    image: $(inputs.params.prctl-image)
+    workingDir: /workspace/$(inputs.resources.repo.name)
+    # Need to use script as workaround not to error out in tests.
+    # If any of the steps returns non-zero codes, subsequent steps will not be run.
+    args:
+    - branch
+    - --json-logs
+    - --branchName=$(inputs.params.branchName)
+    - --fork=$(inputs.params.fork)
+    - --forkName=$(inputs.params.forkName)
+    - --repoDir=/workspace/$(inputs.resources.repo.name)
+    - --upstreamName=$(inputs.params.upstreamName)
+  # Modify the model
+  - name: kpt-set
+    image: $(inputs.params.kpt-image)
+    workingDir: /workspace/$(inputs.resources.repo.name)
+    command:
+    - kpt
+    - cfg
+    - set
+    - /workspace/$(inputs.resources.repo.name)/Label_Microservice/deployment
+    - automl-model
+    - $(inputs.params.automl-model)
+  # Hydrate the manifests
+  - name: hydrate
+    image: $(inputs.params.prctl-image)
+    workingDir: /workspace/$(inputs.resources.repo.name)/Label_Microservice
+    command:
+    - make
+    - hydrate-prod
+  - name: git-configure
+    image: $(inputs.params.prctl-image)
+    workingDir: /workspace/$(inputs.resources.repo.name)
+    script: |
+      #!/usr/bin/env bash
+      set -x
+      git config --global user.email label-bot@label-bot.dev
+      git config --global user.name "Label bot"
+  # Commit and push the changes  
+  - name: create-message
+    image: $(inputs.params.prctl-image)
+    workingDir: /workspace/$(inputs.resources.repo.name)
+    script: |
+      #!/usr/bin/env bash
+      cat << 'EOF' >> /workspace/message.txt
+      [auto PR] Update model to $(inputs.params.automl-model)
+
+      Update the automl-model to $(inputs.params.automl-model)
+      EOF
+  - name: commit-push
+    image: $(inputs.params.prctl-image)
+    workingDir: /workspace/$(inputs.resources.repo.name)
+    script: |-
+      #!/usr/bin/env bash
+      set -x
+      # We need to create a symbolic link to the ssh files that Tekton sets up
+      ln -sf /tekton/home/.ssh /root/.ssh
+      prctl push \
+        --json-logs \
+        --refSpec=$(inputs.params.branchName) \
+        --forkName=$(inputs.params.forkName) \
+        --repoDir=/workspace/$(inputs.resources.repo.name) \
+        --messagePath=/workspace/message.txt

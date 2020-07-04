@@ -1,0 +1,35 @@
+# Run the pipeline to create a PR to update the model.
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: update-model-
+  namespace: label-bot-dev
+  labels:
+    pipeline: update-model-pr
+spec:
+  params:
+  - name: automl-model
+    #value: "projects/976279526634/locations/us-central1/models/TCN654213816573231104"
+    # If we don't make any change we will get problems trying to do a commit.
+    value: "notavlidmodel"
+  # We can reuse the same branch for serial updates as long as the updates happen sequentially.
+  # This way we can avoid cluterring the repository with multiple branches
+  # However, only one change can be open on a branch at a time.  
+  - name: branchName
+    value: auto-update-manual
+  - name: fork
+    value: git@github.com:kubeflow/code-intelligence.git
+  - name: forkName
+    value: fork
+  resources:
+  - name: repo
+    resourceSpec:
+      type: git
+      params:
+      - name: url
+        value: https://github.com/kubeflow/code-intelligence.git
+      - name: revision
+        value: master
+  pipelineRef:
+    name: update-model-pr
+  serviceAccountName: auto-update
