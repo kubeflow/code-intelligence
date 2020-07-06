@@ -28,9 +28,30 @@ spec:
     default: origin
     description: (Optional) The name of the remote repository corresponding to the
       upstream URL
+  #**********************************************************************
+  # Create PR parameters
+  - name: gitHubAppId
+    type: string
+    default: "71466"
+    description: AppID for the GitHub app used to create PRs
+  - name: forkOwner
+    type: string
+    default: kubeflow
+    description: (Optional) The GitHub org/user that is the owner of the fork repository
+  - name: gitHubAppPrivateKeySecretName
+    type: string
+    default: label-bot-cd-github-private-key
+    description: Name of the secret containing the github app private key
+  - name: gitHubAppPrivateKeyFileName
+    type: string
+    default: github-private-key
+    description: Name of the file in gitHubAppPrivateKeySecretName containing the
+      private key
+  #**********************************************************************
+  # Image parameters 
   - name: prctl-image
     type: string
-    default: "gcr.io/kubeflow-images-public/prctl:7939a1d-dirty@sha256:50ddf9dc0871f12037bb787abce6a2c43ee62793daae0f8e8622cad2675f9ec2" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"prctl-image","value":"gcr.io/kubeflow-images-public/prctl:7939a1d-dirty@sha256:50ddf9dc0871f12037bb787abce6a2c43ee62793daae0f8e8622cad2675f9ec2"}]}}
+    default: "gcr.io/kubeflow-images-public/prctl:a1a488e@sha256:53b4e6ff048adf8a4f9afc623e533456c7ace944f9bf03c527f07e597c86ae8c" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"prctl-image","value":"gcr.io/kubeflow-images-public/prctl:a1a488e@sha256:53b4e6ff048adf8a4f9afc623e533456c7ace944f9bf03c527f07e597c86ae8c"}]}}
     description: The image containing prctl
   - name: kpt-image
     type: string
@@ -108,3 +129,30 @@ spec:
         --forkName=$(inputs.params.forkName) \
         --repoDir=/workspace/$(inputs.resources.repo.name) \
         --messagePath=/workspace/message.txt
+  # TODO(jlewi): Should we make creating a PR its own task?
+  # How would we make the message available to it? We could get the message
+  # of the last commit if we checkout the repo? Is it possible to do that
+  # using the GitHub API?
+  # 
+  - name: create-pr
+    image: $(inputs.params.prctl-image)
+    workingDir: /workspace/$(inputs.resources.repo.name)
+    script: |-
+      #!/usr/bin/env bash
+      set -x
+      # Uncomment to stop debugging
+      prctl pull-request \
+        --json-logs \
+        --privateKey=/secret/$(inputs.params.gitHubAppPrivateKeyFileName) \
+        --repo=$(inputs.resources.repo.url) \
+        --baseBranch=$(inputs.resources.repo.revision) \
+        --forkRef=$(inputs.params.forkOwner):$(inputs.params.branchName) \
+        --appId=$(inputs.params.gitHubAppId) \
+        --messagePath=/workspace/message.txt
+    volumeMounts:
+    - mountPath: /secret
+      name: github-bot-private-key
+  volumes:
+  - name: github-bot-private-key
+    secret:
+      secretName: $(inputs.params.gitHubAppPrivateKeySecretName)
