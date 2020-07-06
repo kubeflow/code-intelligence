@@ -28,8 +28,7 @@ spec:
   - name: repo
     type: git
   tasks:
-  # Build the docker image containing the source
-  - name: build-image
+  - name: update-model-pr
     resources:
       inputs:
       - name: repo

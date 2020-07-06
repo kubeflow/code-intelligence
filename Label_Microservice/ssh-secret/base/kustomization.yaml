@@ -3,8 +3,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - ssh-secret.yaml
+generatorOptions:
+  # Disable the suffix name hash because we want the key to have a predictable name because we reference
+  # it in other places.
+  # TODO(jlewi): According to the docs we should be able to do this per resource.
+  disableNameSuffixHash: true
 secretGenerator:
-  # generate a tls Secret
+# generate an ssh secret containing the deploy key for the repo
 - name: label-bot-ssh
   behavior: merge
   files:
@@ -12,3 +17,13 @@ secretGenerator:
     - ssh-publickey=/home/jlewi/.ssh/label_bot.pub
     - known_hosts=config/known_hosts
   type: kubernetes.io/ssh-auth
+# This is the private key for the label-bot-cd github app
+- name: label-bot-cd-github-private-key
+  files:
+  - github-private-key=/home/jlewi/secrets/label-bot-cd.2020-07-04.private-key.pem
+  type: opaque
+  # TODO(jlewi): This works in kustomize versions newer than 3.2; I tried 3.8 and it worked
+  # uncomment and stop setting the default for all resources to true once we upgrade
+  # to a sufficiently new version of kustomize
+  # options:
+  #   disableNameSuffixHash: true
