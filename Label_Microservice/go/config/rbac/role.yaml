@@ -1,0 +1,46 @@
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - automl.cloudai.kubeflow.org
+  resources:
+  - modelsyncs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - automl.cloudai.kubeflow.org
+  resources:
+  - modelsyncs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - tekton.dev
+  resources:
+  - pipelinerun
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - tekton.dev
+  resources:
+  - pipelinerun/status
+  verbs:
+  - get
