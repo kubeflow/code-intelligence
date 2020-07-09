@@ -1,0 +1,7 @@
+domain: cloudai.kubeflow.org
+repo: github.com/kubeflow/code-intelligence/Label_Microservice
+resources:
+- group: automl
+  kind: ModelSync
+  version: v1alpha1
+version: "2"
