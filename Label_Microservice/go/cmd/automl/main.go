@@ -5,141 +5,145 @@
 package main
 
 import (
-	automl "cloud.google.com/go/automl/apiv1"
-	"context"
-	"flag"
 	"fmt"
-	"github.com/golang/protobuf/proto"
+	"github.com/go-yaml/yaml"
+	"github.com/gorilla/mux"
+	"github.com/kubeflow/code-intelligence/Label_Microservice/cmd/automl/pkg/automl"
+	"github.com/kubeflow/code-intelligence/Label_Microservice/cmd/automl/pkg/server"
 	"github.com/onrik/logrus/filename"
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/api/iterator"
-	automlpb "google.golang.org/genproto/googleapis/cloud/automl/v1"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
+	"github.com/spf13/cobra"
+	"net/http"
+	"regexp"
+	"strings"
 )
-
-// From https://stackoverflow.com/questions/28969455/how-to-properly-instantiate-os-filemode
-const (
-	OS_READ        = 04
-	OS_WRITE       = 02
-	OS_EX          = 01
-	OS_USER_SHIFT  = 6
-	OS_GROUP_SHIFT = 3
-	OS_OTH_SHIFT   = 0
-
-	OS_USER_R   = OS_READ << OS_USER_SHIFT
-	OS_USER_W   = OS_WRITE << OS_USER_SHIFT
-	OS_USER_X   = OS_EX << OS_USER_SHIFT
-	OS_USER_RW  = OS_USER_R | OS_USER_W
-	OS_USER_RWX = OS_USER_RW | OS_USER_X
-
-	OS_GROUP_R   = OS_READ << OS_GROUP_SHIFT
-	OS_GROUP_W   = OS_WRITE << OS_GROUP_SHIFT
-	OS_GROUP_X   = OS_EX << OS_GROUP_SHIFT
-	OS_GROUP_RW  = OS_GROUP_R | OS_GROUP_W
-	OS_GROUP_RWX = OS_GROUP_RW | OS_GROUP_X
-
-	OS_OTH_R   = OS_READ << OS_OTH_SHIFT
-	OS_OTH_W   = OS_WRITE << OS_OTH_SHIFT
-	OS_OTH_X   = OS_EX << OS_OTH_SHIFT
-	OS_OTH_RW  = OS_OTH_R | OS_OTH_W
-	OS_OTH_RWX = OS_OTH_RW | OS_OTH_X
-
-	OS_ALL_R   = OS_USER_R | OS_GROUP_R | OS_OTH_R
-	OS_ALL_W   = OS_USER_W | OS_GROUP_W | OS_OTH_W
-	OS_ALL_X   = OS_USER_X | OS_GROUP_X | OS_OTH_X
-	OS_ALL_RW  = OS_ALL_R | OS_ALL_W
-	OS_ALL_RWX = OS_ALL_RW | OS_GROUP_X
-)
-
-// getLatestDeployed finds the latest deployed model
-//
-// TODO(jlewi): We should really filter on labels; they don't appear to show up in the UI but they
-// are in the API: https://cloud.google.com/automl/docs/reference/rest/v1/projects.locations.models#Model
-func getLatestDeployed(projectID string, location string, modelName string) (*automlpb.Model, error) {
-	// projectID := "my-project-id"
-	// location := "us-central1"
-
-	ctx := context.Background()
-	client, err := automl.NewClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("NewClient: %v", err)
-	}
-	defer client.Close()
-
-	req := &automlpb.ListModelsRequest{
-		Parent: fmt.Sprintf("projects/%s/locations/%s", projectID, location),
-	}
-
-	it := client.ListModels(ctx, req)
-
-	var latest *automlpb.Model
-	// Iterate over all results
-	for {
-		model, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("ListModels.Next: %v", err)
-		}
-
-		if model.GetDisplayName() != modelName {
-			continue
-		}
-		// Skip undeployed models
-		if model.GetDeploymentState() != automlpb.Model_DEPLOYED {
-			log.Infof("Skipping model %v; it is in state %v", model.GetName(), model.GetDeploymentState())
-		}
-
-		if latest == nil || latest.CreateTime == nil || latest.GetCreateTime().AsTime().Before(model.GetCreateTime().AsTime()) {
-			latest = &automlpb.Model{}
-			proto.Merge(latest, model)
-		}
-	}
-
-	return latest, nil
-}
 
 func init() {
 	// Add filename as one of the fields of the structured log message.
 	filenameHook := filename.NewHook()
 	filenameHook.Field = "filename"
 	log.AddHook(filenameHook)
+
+	rootCmd.AddCommand(serveCmd)
+	rootCmd.AddCommand(getCmd)
+	rootCmd.AddCommand(labelCmd)
+
+	labelCmd.AddCommand(labelModelCmd)
+
+	serveCmd.Flags().StringVarP(&options.project, "project", "", "issue-label-bot-dev", "Project to get AutoML models for")
+	serveCmd.Flags().StringVarP(&options.location, "location", "", "us-central1", "Location to search for models")
+	serveCmd.Flags().StringVarP(&options.name, "name", "", "kubeflow_issues_with_repo", "The display name of the model; only models with this name will be considered")
+	serveCmd.Flags().StringVarP(&options.kptFile, "kptFile", "", "", "The path to the KptFile containing the setter.")
+	serveCmd.Flags().StringVarP(&options.setterName, "setterName", "", "automl-model", "The name of the setter.")
+
+	serveCmd.MarkFlagRequired("kptFile")
+
+	getCmd.Flags().StringVarP(&getOptions.name, "name", "", "", "The model to get.")
+	getCmd.MarkFlagRequired("model")
 }
 
+
+type cliOptions struct {
+	project string
+	location string
+	name string
+	kptFile string
+	setterName string
+}
+
+type getCmdOptions struct{
+	name string
+}
+
+var (
+	options = cliOptions{}
+	getOptions = getCmdOptions{}
+	rootCmd = &cobra.Command{
+		Short: "An automl model controller",
+		Long:  `A controller to synchronize your automl model with your configs`,
+	}
+
+	serveCmd = &cobra.Command{
+		Use:   "serve",
+		Short: "Start webserver.",
+		Long:  `starts the controller`,
+		Run: func(cmd *cobra.Command, args []string) {
+			router := mux.NewRouter().StrictSlash(true)
+
+			s := &server.Server{
+				Project: options.project,
+				Location: options.location,
+				Name: options.name,
+				KptFile:options.kptFile,
+				SetterName: options.setterName,
+			}
+			router.HandleFunc("/needsSync", s.NeedsSync)
+			router.HandleFunc("/", s.Healthz)
+			log.Infof("Serving on :8080")
+			log.Fatal(http.ListenAndServe(":8080", router))
+		},
+	}
+
+	getCmd = &cobra.Command{
+		Use:   "get",
+		Short: "Get the specified model.",
+		Long:  `Get the specified model`,
+		Run: func(cmd *cobra.Command, args []string) {
+			model, err := automl.GetModel(getOptions.name)
+
+			if err != nil {
+				log.Fatalf("Error getting model %v; error: %v", getOptions.name, err)
+			}
+
+			b, err := yaml.Marshal(model)
+
+			if err != nil {
+				log.Fatalf("Error marshiling the model to yaml %v; error: %v", getOptions.name, err)
+			}
+
+			fmt.Printf(string(b) + "\n")
+		},
+	}
+
+	labelCmd = &cobra.Command{
+		Use:   "label",
+		Short: "Add labels.",
+	}
+
+	labelModelCmd = &cobra.Command{
+		Use:   "models",
+		Short: "Label the specified model.",
+		Long:  `Label the specified model`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) < 2 {
+				log.Fatalf("Error usage is label models <model> label1=value1 label2=value2")
+			}
+
+			name := args[0]
+
+			labels := map[string]string {}
+			for _, p := range args[1:] {
+				if b, err :=regexp.MatchString(".*=.*", p); err!= nil || !b {
+					if err != nil {
+						log.Fatalf("Could not parse label: %v; error %v", p, err)
+					}
+					log.Fatalf("%v doesn't match label pattern of labelName=labelValue", p)
+				}
+
+				pieces := strings.SplitN(p, "=",2)
+
+				labels[pieces[0]] = pieces[1]
+			}
+
+			if err := automl.LabelModel(name, labels); err != nil {
+				log.Fatalf("Error labeling model: %+v", err)
+			}
+
+		},
+	}
+)
+
+
 func main() {
-	var project = flag.String("context", "issue-label-bot-dev", "Project to get AutoML models for")
-	var location = flag.String("location", "us-central1", "Location to search for models")
-	var name = flag.String("name", "kubeflow_issues_with_repo", "The display name of the model; only models with this name will be considered")
-	var output = flag.String("output", "", "(Optional) If supplied the model info is written to this file in YAML format")
-
-	flag.Parse()
-
-	latest, err := getLatestDeployed(*project, *location, *name)
-
-	if err != nil {
-		log.Fatalf("Failed to list models; error %v", err)
-	}
-
-	if latest == nil {
-		log.Errorf("No deployed models found: project: %v, location: %v, Display Name: %v", project, location, name)
-		return
-	}
-
-	log.Infof("Latest model: %v", latest.GetName())
-
-	if *output != "" {
-		log.Infof("Writing model information to: %v", *output)
-
-		b, err := yaml.Marshal(latest)
-
-		if err != nil {
-			log.Errorf("Error marshaling YAML: %v", err)
-			return
-		}
-
-		ioutil.WriteFile(*output, b, OS_ALL_R)
-	}
-	log.Infof("Getting models succeeded.")
+	rootCmd.Execute()
 }
