@@ -84,26 +84,6 @@ var (
 			}
 		},
 	}
-
-	//applyCmd = &cobra.Command{
-	//	Use:   "apply",
-	//	Short: "Apply the specified config.",
-	//	Long:  `Apply the specified config`,
-	//	Run: func(cmd *cobra.Command, args []string) {
-	//		if fileName == "" {
-	//			log.Fatalf("file can't be the empty string.")
-	//		}
-	//
-	//		b, err := ioutil.ReadFile(fileName)
-	//
-	//		if err != nil {
-	//			log.Fatalf("Error reading file: %v; Error %v", fileName, err)
-	//		}
-	//
-	//		o := &Ap
-	//		yaml.Unmarshal(b, o)
-	//	},
-	//}
 )
 
 var metricsAddr string
@@ -119,25 +99,9 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 
 	rootCmd.AddCommand(startCmd)
-	//rootCmd.AddCommand(applyCmd)
-	//
-	//startCmd.Flags().StringVarP(&metricsAddr, "metrics-addr", "", ":8080", "The address the metric endpoint binds to.")
-	//startCmd.Flags().BoolVarP(&enableLeaderElection, "enable-leader-election", "", false, "Enable leader election for controller manager. "+
-	//	"Enabling this will ensure there is only one active controller manager.")
-	//
-	//applyCmd.Flags().StringVarP(&fileName, "file", "f", "", "The file containing the YAML resource to apply")
-	//applyCmd.MarkFlagRequired("file")
-	//branchCmd.Flags().StringVarP(&options.fork, "fork", "", "", "Name to assign the remote repo for the fork")
-	//branchCmd.Flags().StringVarP(&options.branchName, "branchName", "", "", "Name to the branch to create")
-	//
-	//branchCmd.MarkFlagRequired("forkName")
-	//branchCmd.MarkFlagRequired("fork")
-	//branchCmd.MarkFlagRequired("branchName")
-	//
-	//pushCmd.Flags().StringVarP(&options.repoDir, "repoDir", "", "", "Directory where the code is checked out")
-	//pushCmd.Flags().StringVarP(&options.forkName, "forkName", "", "", "Name to assign the remote repo for the fork")
-	//pushCmd.Flags().StringVarP(&options.refSpec, "refSpec", "", "", "The refSpec to use for the push")
-	//pushCmd.Flags().StringVarP(&options.messagePath, "messagePath", "", "", "Path to a file containing the message to use for the commit")
+	startCmd.Flags().StringVarP(&metricsAddr, "metrics-addr", "", ":8080", "The address the metric endpoint binds to.")
+	startCmd.Flags().BoolVarP(&enableLeaderElection, "enable-leader-election", "", false, "Enable leader election for controller manager. "+
+		"Enabling this will ensure there is only one active controller manager.")
 }
 
 func main() {
