@@ -32,7 +32,7 @@ require (
 // Pin k8s deps to 1.17.6
 replace (
 	// Work around for missing json tags that breaks code gen
-	github.com/tektoncd/pipeline => /home/jlewi/git_tekton
+	//github.com/tektoncd/pipeline => /home/jlewi/git_tekton
 	k8s.io/api => k8s.io/api v0.17.6
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.17.6
 	k8s.io/apimachinery => k8s.io/apimachinery v0.17.6

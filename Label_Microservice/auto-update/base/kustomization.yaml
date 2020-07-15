@@ -1,4 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+- deployment.yaml
 - service-account.yaml
+images:
+- digest: sha256:5c92366b6bee63930de364b7d674fc1713d0f87d45eed989d2ef41e32e34c33b
+  name: gcr.io/issue-label-bot-dev/labelbot-diff
+  newName: gcr.io/issue-label-bot-dev/labelbot-diff:348b22c

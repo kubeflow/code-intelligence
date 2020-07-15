@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: labelbot-diff
+  name: labelbot-diff
+  namespace: label-bot-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: labelbot-diff
+  template:
+    metadata:
+      labels:
+        app: labelbot-diff
+    spec:
+      containers:
+      - command:
+        - /automl
+        - serve
+        - --kptFile=/src/code-intelligence.git/Label_Microservice/deployment/Kptfile
+        - --port=8080
+        image: gcr.io/issue-label-bot-dev/labelbot-diff:348b22c@sha256:5c92366b6bee63930de364b7d674fc1713d0f87d45eed989d2ef41e32e34c33b
+        name: diff
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - mountPath: /src
+          name: src
+      - args:
+        - --repo=https://github.com/kubeflow/code-intelligence.git
+        - --branch=master
+        - --root=/src
+        - --wait=30
+        image: k8s.gcr.io/git-sync:v3.1.6
+        name: sync
+        volumeMounts:
+        - mountPath: /src
+          name: src
+      serviceAccount: auto-update
+      volumes:
+      - emptyDir: {}
+        name: src

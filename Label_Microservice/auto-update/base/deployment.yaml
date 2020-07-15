@@ -1,0 +1,59 @@
+# A deployment for a lambda that computes whether the model needs to be updated
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: labelbot-diff
+  labels:
+    app: labelbot-diff
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: labelbot-diff
+  template:
+    metadata:
+      labels:
+        app: labelbot-diff
+    spec:
+      containers:
+      - name: diff
+        image: gcr.io/issue-label-bot-dev/labelbot-diff
+        command:
+        - /automl
+        - serve 
+        - --kptFile=/src/code-intelligence.git/Label_Microservice/deployment/Kptfile
+        - --port=8080
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: src
+          mountPath: /src
+      - name: sync
+        image: k8s.gcr.io/git-sync:v3.1.6
+        args:
+        - --repo=https://github.com/kubeflow/code-intelligence.git
+        - --branch=master
+        - --root=/src
+        # In seconds
+        - --wait=30
+        volumeMounts:
+        - name: src
+          mountPath: /src   
+      serviceAccount: auto-update
+      volumes:
+        - name: src
+          emptyDir: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: labelbot-diff
+spec:
+  selector:
+    app: labelbot-diff
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080    
