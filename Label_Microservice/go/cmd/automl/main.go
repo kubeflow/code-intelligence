@@ -35,6 +35,7 @@ func init() {
 	serveCmd.Flags().StringVarP(&options.name, "name", "", "kubeflow_issues_with_repo", "The display name of the model; only models with this name will be considered")
 	serveCmd.Flags().StringVarP(&options.kptFile, "kptFile", "", "", "The path to the KptFile containing the setter.")
 	serveCmd.Flags().StringVarP(&options.setterName, "setterName", "", "automl-model", "The name of the setter.")
+	serveCmd.Flags().StringVarP(&options.port, "port", "", "80", "The port to serve on.")
 
 	serveCmd.MarkFlagRequired("kptFile")
 
@@ -49,6 +50,7 @@ type cliOptions struct {
 	name string
 	kptFile string
 	setterName string
+	port string
 }
 
 type getCmdOptions struct{
@@ -79,8 +81,10 @@ var (
 			}
 			router.HandleFunc("/needsSync", s.NeedsSync)
 			router.HandleFunc("/", s.Healthz)
-			log.Infof("Serving on :8080")
-			log.Fatal(http.ListenAndServe(":8080", router))
+
+			address := ":" + options.port
+			log.Infof("Serving on %v", address)
+			log.Fatal(http.ListenAndServe(address, router))
 		},
 	}
 
