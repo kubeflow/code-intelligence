@@ -7,6 +7,18 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - automl.cloudai.kubeflow.org
   resources:
   - modelsyncs
@@ -29,7 +41,7 @@ rules:
 - apiGroups:
   - tekton.dev
   resources:
-  - pipelinerun
+  - pipelineruns
   verbs:
   - create
   - delete
@@ -41,6 +53,6 @@ rules:
 - apiGroups:
   - tekton.dev
   resources:
-  - pipelinerun/status
+  - pipelineruns/status
   verbs:
   - get

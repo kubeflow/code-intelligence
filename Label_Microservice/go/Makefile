@@ -3,7 +3,10 @@
 IMG ?= controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 
-CRD_OPTIONS ?= "crd:trivialVersions=true"
+# Per https://github.com/kubernetes-sigs/kubebuilder/issues/1140
+# we need to set maxDesciptionLength to 0 to avoid generating
+# a CRD that is too long
+CRD_OPTIONS ?= "crd:trivialVersions=true,maxDescLen=0"
 
 # TODO(jlewi): Need to sort out root vs project level Makefiles
 CONTEXT=label-bot-dev
@@ -52,6 +55,7 @@ manifests: controller-gen
 	# 2. The generated openapi spec for pipelineruntemplate rejects valid pipelineruntemplates
 	#    the problem appears to be that tekton does some custom deserialization of params in order to treat them
 	#    as strings or arrays
+	# TODO(https://github.com/kubeflow/code-intelligence/issues/172)
 	python ./hack/prune_crd.py ./config/crd/bases/automl.cloudai.kubeflow.org_modelsyncs.yaml
 
 

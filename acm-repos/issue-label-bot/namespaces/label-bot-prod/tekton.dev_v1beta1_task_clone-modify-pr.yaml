@@ -1,0 +1,140 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  annotations:
+    sidecar.istio.io/inject: "false"
+  name: clone-modify-pr
+  namespace: label-bot-prod
+spec:
+  params:
+  - description: The name of the automl-model to use in the form projects/${PROJECT}/locations/${LOCATION}/models/${ID}
+    name: automl-model
+  - description: The name to give to the branch to create
+    name: branchName
+    type: string
+  - default: fork
+    description: The url of the remote repo for the fork
+    name: fork
+    type: string
+  - default: fork
+    description: (Optional) The name to give to the remote repo for the fork
+    name: forkName
+    type: string
+  - default: origin
+    description: (Optional) The name of the remote repository corresponding to the
+      upstream URL
+    name: upstreamName
+    type: string
+  - default: "71466"
+    description: AppID for the GitHub app used to create PRs
+    name: gitHubAppId
+    type: string
+  - default: kubeflow
+    description: (Optional) The GitHub org/user that is the owner of the fork repository
+    name: forkOwner
+    type: string
+  - default: label-bot-cd-github-private-key
+    description: Name of the secret containing the github app private key
+    name: gitHubAppPrivateKeySecretName
+    type: string
+  - default: github-private-key
+    description: Name of the file in gitHubAppPrivateKeySecretName containing the
+      private key
+    name: gitHubAppPrivateKeyFileName
+    type: string
+  - default: gcr.io/kubeflow-images-public/prctl:a1a488e@sha256:53b4e6ff048adf8a4f9afc623e533456c7ace944f9bf03c527f07e597c86ae8c
+    description: The image containing prctl
+    name: prctl-image
+    type: string
+  - default: gcr.io/kpt-dev/kpt@sha256:8a621c8e4b4d1cf5ec71f43aa099c120a78291896664a2cdb2c965a5726479ad
+    description: kpt image to use
+    name: kpt-image
+    type: string
+  resources:
+    inputs:
+    - description: The GitHub repo containing the code to modify
+      name: repo
+      type: git
+  steps:
+  - args:
+    - branch
+    - --json-logs
+    - --branchName=$(inputs.params.branchName)
+    - --fork=$(inputs.params.fork)
+    - --forkName=$(inputs.params.forkName)
+    - --repoDir=/workspace/$(inputs.resources.repo.name)
+    - --upstreamName=$(inputs.params.upstreamName)
+    image: $(inputs.params.prctl-image)
+    name: branch
+    workingDir: /workspace/$(inputs.resources.repo.name)
+  - command:
+    - kpt
+    - cfg
+    - set
+    - /workspace/$(inputs.resources.repo.name)/Label_Microservice/deployment
+    - automl-model
+    - $(inputs.params.automl-model)
+    image: $(inputs.params.kpt-image)
+    name: kpt-set
+    workingDir: /workspace/$(inputs.resources.repo.name)
+  - command:
+    - make
+    - hydrate-prod
+    image: $(inputs.params.prctl-image)
+    name: hydrate
+    workingDir: /workspace/$(inputs.resources.repo.name)/Label_Microservice
+  - image: $(inputs.params.prctl-image)
+    name: git-configure
+    script: |
+      #!/usr/bin/env bash
+      set -x
+      git config --global user.email label-bot@label-bot.dev
+      git config --global user.name "Label bot"
+    workingDir: /workspace/$(inputs.resources.repo.name)
+  - image: $(inputs.params.prctl-image)
+    name: create-message
+    script: |
+      #!/usr/bin/env bash
+      set -x
+      cat << 'EOF' >> /workspace/message.txt
+      [auto PR] Update model to $(inputs.params.automl-model)
+
+      Update the automl-model to $(inputs.params.automl-model)
+      EOF
+    workingDir: /workspace/$(inputs.resources.repo.name)
+  - image: $(inputs.params.prctl-image)
+    name: commit-push
+    script: |-
+      #!/usr/bin/env bash
+      set -x
+      # We need to create a symbolic link to the ssh files that Tekton sets up
+      ln -sf /tekton/home/.ssh /root/.ssh
+      prctl push \
+        --json-logs \
+        --refSpec=$(inputs.params.branchName) \
+        --forkName=$(inputs.params.forkName) \
+        --repoDir=/workspace/$(inputs.resources.repo.name) \
+        --messagePath=/workspace/message.txt
+    workingDir: /workspace/$(inputs.resources.repo.name)
+  - image: $(inputs.params.prctl-image)
+    name: create-pr
+    script: |-
+      #!/usr/bin/env bash
+      set -x
+      # Uncomment to stop debugging
+      prctl pull-request \
+        --json-logs \
+        --privateKey=/secret/$(inputs.params.gitHubAppPrivateKeyFileName) \
+        --repo=$(inputs.resources.repo.url) \
+        --baseBranch=$(inputs.resources.repo.revision) \
+        --forkRef=$(inputs.params.forkOwner):$(inputs.params.branchName) \
+        --appId=$(inputs.params.gitHubAppId) \
+        --messagePath=/workspace/message.txt
+    volumeMounts:
+    - mountPath: /secret
+      name: github-bot-private-key
+    workingDir: /workspace/$(inputs.resources.repo.name)
+  volumes:
+  - name: github-bot-private-key
+    secret:
+      secretName: $(inputs.params.gitHubAppPrivateKeySecretName)

@@ -66,9 +66,12 @@ var (
 // +kubebuilder:rbac:groups=automl.cloudai.kubeflow.org,resources=modelsyncs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=automl.cloudai.kubeflow.org,resources=modelsyncs/status,verbs=get;update;patch
 
+// Need to be able to create events
+// +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch;delete
+
 // Controller will need rbac permissions to get, create pipelineruns
-// +kubebuilder:rbac:groups=tekton.dev,resources=pipelinerun,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=tekton.dev,resources=pipelinerun/status,verbs=get
+// +kubebuilder:rbac:groups=tekton.dev,resources=pipelineruns,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=tekton.dev,resources=pipelineruns/status,verbs=get
 
 func (r *ModelSyncReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()

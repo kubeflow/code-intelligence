@@ -1,9 +1,11 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    control-plane: controller-manager
-  name: system
+# TODO(jlewi): Commented out because we don't want to install it in its own namespace.
+# will install in Kubeflow namespace.
+#apiVersion: v1
+#kind: Namespace
+#metadata:
+#  labels:
+#    control-plane: controller-manager
+#  name: system
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -26,6 +28,7 @@ spec:
       - command:
         - /manager
         args:
+        - start
         - --enable-leader-election
         image: controller:latest
         name: manager

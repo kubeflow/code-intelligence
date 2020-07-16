@@ -1,0 +1,45 @@
+# This sample is intended for use with running the controller locally.
+# needsSyncUrl should point to a service running on localhost.
+# If you are running the lambda service in the cluster you need to
+# setup port-forwarding with kubectl
+apiVersion: automl.cloudai.kubeflow.org/v1alpha1
+kind: ModelSync
+metadata:
+  name: modelsync-sample
+spec:
+  # This url is for the labelbot diff service. It must be deployed.  
+  failedPipelineRunsHistoryLimit: 10
+  successfulPipelineRunsHistoryLimit: 10
+  needsSyncUrl: "http://labelbot-diff.label-bot-prod/needsSync"
+  parameters:
+  - needsSyncName: name
+    pipelineName: automl-model  
+  pipelineRunTemplate:
+    spec:
+      params:
+        - name: automl-model
+          #value: "projects/976279526634/locations/us-central1/models/TCN654213816573231104"
+          # If we don't make any change we will get problems trying to do a commit.
+          value: "notavlidmodel"
+        # We can reuse the same branch for serial updates as long as the updates happen sequentially.
+        # This way we can avoid cluterring the repository with multiple branches
+        # However, only one change can be open on a branch at a time.  
+        - name: branchName
+          value: auto-update
+        - name: fork
+          value: git@github.com:kubeflow/code-intelligence.git
+        - name: forkName
+          value: fork
+      resources:
+      - name: repo
+        resourceSpec:
+          type: git
+          params:
+          - name: url
+            value: https://github.com/kubeflow/code-intelligence.git
+          - name: revision
+            value: master
+      pipelineRef:
+        name: update-model-pr
+      serviceAccountName: auto-update
+

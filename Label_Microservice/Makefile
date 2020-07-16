@@ -5,7 +5,8 @@ hydrate-prod:
 	rm -f ../acm-repos/issue-label-bot/namespaces/label-bot-prod/*
 	kustomize build -o ../acm-repos/issue-label-bot/namespaces/label-bot-prod deployment/overlays/prod
 	kustomize build -o ../acm-repos/issue-label-bot/namespaces/label-bot-prod auto-update/prod
-
+	kustomize build -o ../acm-repos/issue-label-bot/namespaces/label-bot-prod ../tekton/installs/prod
+	
 # TODO this is duplicated in the root Makefile
 apply-dev:
 	kustomize build ./auto-update/dev | kubectl --context=$(CONTEXT) apply -f - 
