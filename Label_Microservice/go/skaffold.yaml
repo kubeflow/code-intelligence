@@ -1,0 +1,31 @@
+# Reference: https://skaffold.dev/docs/references/yaml/
+apiVersion: skaffold/v2alpha1
+kind: Config
+metadata:
+  name: label-microservice
+build:
+  artifacts:
+  - image: gcr.io/issue-label-bot-dev/modelsync-controller
+    # Set the context to the go directory
+    # All paths in the dockerfile should be relative to this
+    context: .
+    kaniko:
+      # Relative to context
+      dockerfile: Dockerfile
+      buildContext:
+        gcsBucket: issue-label-bot-dev_skaffold-kaniko
+      env: 
+        # TODO(GoogleContainerTools/skaffold#3468) skaffold doesn't
+        # appear to work with workload identity
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /secret/user-gcp-sa.json 
+      cache: {}
+  cluster:    
+    pullSecretName: user-gcp-sa
+    # Build in the kaniko namespace because we need to disable ISTIO sidecar injection
+    # see  GoogleContainerTools/skaffold#3442
+    namespace: kaniko
+    resources:
+      requests:
+        cpu: 8
+        memory: 16Gi

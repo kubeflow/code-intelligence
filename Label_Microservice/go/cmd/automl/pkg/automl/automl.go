@@ -1,15 +1,15 @@
 package automl
 
 import (
-automl "cloud.google.com/go/automl/apiv1"
-"context"
-"fmt"
-"github.com/golang/protobuf/proto"
-"github.com/pkg/errors"
-log "github.com/sirupsen/logrus"
-"google.golang.org/api/iterator"
-automlpb "google.golang.org/genproto/googleapis/cloud/automl/v1"
-"google.golang.org/genproto/protobuf/field_mask"
+	automl "cloud.google.com/go/automl/apiv1"
+	"context"
+	"fmt"
+	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+	"google.golang.org/api/iterator"
+	automlpb "google.golang.org/genproto/googleapis/cloud/automl/v1"
+	"google.golang.org/genproto/protobuf/field_mask"
 )
 
 type ModelIterator interface {
@@ -88,7 +88,7 @@ func GetModel(name string) (*automlpb.Model, error) {
 // labelModel labels the specified model
 //
 // TODO(jlewi): Should we support removing labels?
-func LabelModel(name string, labels map[string]string) (error) {
+func LabelModel(name string, labels map[string]string) error {
 	ctx := context.Background()
 	client, err := automl.NewClient(ctx)
 	if err != nil {
@@ -100,7 +100,7 @@ func LabelModel(name string, labels map[string]string) (error) {
 		Name: name,
 	}
 
-	model,  err := client.GetModel(ctx, req)
+	model, err := client.GetModel(ctx, req)
 
 	if err != nil {
 		return errors.WithStack(errors.Wrapf(err, "Error getting model %v", name))
@@ -116,11 +116,11 @@ func LabelModel(name string, labels map[string]string) (error) {
 	uReq := &automlpb.UpdateModelRequest{
 		Model: model,
 		UpdateMask: &field_mask.FieldMask{
-			Paths: []string {"labels"},
+			Paths: []string{"labels"},
 		},
 	}
 
-	_ ,err = client.UpdateModel(ctx, uReq)
+	_, err = client.UpdateModel(ctx, uReq)
 
 	return err
 }

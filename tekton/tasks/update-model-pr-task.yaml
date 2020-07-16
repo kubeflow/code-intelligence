@@ -110,6 +110,7 @@ spec:
     workingDir: /workspace/$(inputs.resources.repo.name)
     script: |
       #!/usr/bin/env bash
+      set -x
       cat << 'EOF' >> /workspace/message.txt
       [auto PR] Update model to $(inputs.params.automl-model)
 

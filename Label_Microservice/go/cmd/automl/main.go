@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"github.com/go-yaml/yaml"
 	"github.com/gorilla/mux"
-	"github.com/kubeflow/code-intelligence/Label_Microservice/cmd/automl/pkg/automl"
-	"github.com/kubeflow/code-intelligence/Label_Microservice/cmd/automl/pkg/server"
+	"github.com/kubeflow/code-intelligence/Label_Microservice/go/cmd/automl/pkg/automl"
+	"github.com/kubeflow/code-intelligence/Label_Microservice/go/cmd/automl/pkg/server"
 	"github.com/onrik/logrus/filename"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -43,24 +43,23 @@ func init() {
 	getCmd.MarkFlagRequired("model")
 }
 
-
 type cliOptions struct {
-	project string
-	location string
-	name string
-	kptFile string
+	project    string
+	location   string
+	name       string
+	kptFile    string
 	setterName string
-	port string
+	port       string
 }
 
-type getCmdOptions struct{
+type getCmdOptions struct {
 	name string
 }
 
 var (
-	options = cliOptions{}
+	options    = cliOptions{}
 	getOptions = getCmdOptions{}
-	rootCmd = &cobra.Command{
+	rootCmd    = &cobra.Command{
 		Short: "An automl model controller",
 		Long:  `A controller to synchronize your automl model with your configs`,
 	}
@@ -73,10 +72,10 @@ var (
 			router := mux.NewRouter().StrictSlash(true)
 
 			s := &server.Server{
-				Project: options.project,
-				Location: options.location,
-				Name: options.name,
-				KptFile:options.kptFile,
+				Project:    options.project,
+				Location:   options.location,
+				Name:       options.name,
+				KptFile:    options.kptFile,
 				SetterName: options.setterName,
 			}
 			router.HandleFunc("/needsSync", s.NeedsSync)
@@ -125,16 +124,16 @@ var (
 
 			name := args[0]
 
-			labels := map[string]string {}
+			labels := map[string]string{}
 			for _, p := range args[1:] {
-				if b, err :=regexp.MatchString(".*=.*", p); err!= nil || !b {
+				if b, err := regexp.MatchString(".*=.*", p); err != nil || !b {
 					if err != nil {
 						log.Fatalf("Could not parse label: %v; error %v", p, err)
 					}
 					log.Fatalf("%v doesn't match label pattern of labelName=labelValue", p)
 				}
 
-				pieces := strings.SplitN(p, "=",2)
+				pieces := strings.SplitN(p, "=", 2)
 
 				labels[pieces[0]] = pieces[1]
 			}
@@ -146,7 +145,6 @@ var (
 		},
 	}
 )
-
 
 func main() {
 	rootCmd.Execute()

@@ -3,36 +3,36 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/code-intelligence/Label_Microservice/cmd/automl/pkg/automl"
-	"github.com/kubeflow/code-intelligence/Label_Microservice/cmd/automl/pkg/kpt"
+	"github.com/kubeflow/code-intelligence/Label_Microservice/go/cmd/automl/pkg/automl"
+	"github.com/kubeflow/code-intelligence/Label_Microservice/go/cmd/automl/pkg/kpt"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 )
 
 const (
-	kind = "NeedsSync"
+	kind       = "NeedsSync"
 	apiVersion = "v1alpha1"
 )
 
 type Server struct {
-	Project string
-	Location string
-	Name string
-	KptFile string
+	Project    string
+	Location   string
+	Name       string
+	KptFile    string
 	SetterName string
 }
 
-type needsSyncResponse struct {
+type NeedsSyncResponse struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-	NeedsSync bool `json:"needsSync"`
-	Parameters map[string]string `json:"parameters"`
-	Errors []responseError `json:"errors,omitempty"`
+	NeedsSync         bool              `json:"needsSync"`
+	Parameters        map[string]string `json:"parameters"`
+	Errors            []responseError   `json:"errors,omitempty"`
 }
 
 type responseError struct {
-	Message string  `json:"message"`
+	Message string `json:"message"`
 }
 
 func (s *Server) Healthz(w http.ResponseWriter, r *http.Request) {
@@ -40,22 +40,21 @@ func (s *Server) Healthz(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func appendError(r *needsSyncResponse, msg string) {
+func appendError(r *NeedsSyncResponse, msg string) {
 	r.Errors = append(r.Errors, responseError{Message: msg})
 }
 
 func (s *Server) NeedsSync(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
-	response := &needsSyncResponse{
+	response := &NeedsSyncResponse{
 		TypeMeta: metav1.TypeMeta{
-			Kind: kind,
+			Kind:       kind,
 			APIVersion: apiVersion,
 		},
-		NeedsSync: false,
-		Parameters: map[string]string {
-		},
-		Errors: []responseError{},
+		NeedsSync:  false,
+		Parameters: map[string]string{},
+		Errors:     []responseError{},
 	}
 
 	getErr := func() error {
@@ -99,7 +98,7 @@ func (s *Server) NeedsSync(w http.ResponseWriter, r *http.Request) {
 	if len(response.Errors) > 0 {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-	if _, err:= w.Write(buf); err != nil {
+	if _, err := w.Write(buf); err != nil {
 		log.Errorf("Error writing response; %v", err)
 	}
 }

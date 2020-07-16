@@ -33,7 +33,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	automlv1alpha1 "github.com/kubeflow/code-intelligence/Label_Microservice/api/v1alpha1"
+	automlv1alpha1 "github.com/kubeflow/code-intelligence/Label_Microservice/go/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 

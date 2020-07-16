@@ -3,10 +3,10 @@
 IMG ?= controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 
-# Per https://github.com/kubernetes-sigs/kubebuilder/issues/1140
-# we need to set maxDesciptionLength to 0 to avoid generating
-# a CRD that is too long
-CRD_OPTIONS ?= "crd:trivialVersions=true,maxDescLen=0"
+CRD_OPTIONS ?= "crd:trivialVersions=true"
+
+# TODO(jlewi): Need to sort out root vs project level Makefiles
+CONTEXT=label-bot-dev
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -45,6 +45,15 @@ deploy: manifests
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	# We need to do some custom pruning of the Kubeflow CRD definition.
+	# In particular we need to change the type of pipelineRunTemplate to arbitrary json and not specify the schema for two reasons
+	# 1. Specifying that schema leads to a CRD that exceeds APIServer limits 
+	#    * We can potentially work around this by using CRD_OPTIONS maxDescLen=0 to prune just the descriptions
+	# 2. The generated openapi spec for pipelineruntemplate rejects valid pipelineruntemplates
+	#    the problem appears to be that tekton does some custom deserialization of params in order to treat them
+	#    as strings or arrays
+	python ./hack/prune_crd.py ./config/crd/bases/automl.cloudai.kubeflow.org_modelsyncs.yaml
+
 
 # Run go fmt against code
 fmt:
@@ -58,6 +67,13 @@ vet:
 generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
+build-image:
+	skaffold build --kube-context=${CONTEXT} -v info --file-output=controller.image.json
+
+set-image:
+	cd config/manager && kustomize edit set image controller=$(shell yq r controller.image.json builds[0].tag )
+
+# TODO(jlewi): Using skaffold is preferred
 # Build the docker image
 docker-build: test
 	docker build . -t ${IMG}

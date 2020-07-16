@@ -1,2 +1,8 @@
 resources:
 - manager.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- digest: sha256:03a316ea482284d2c8c5c93ad82fa48874a256bc3facf95f95d7ed540f19ec4b
+  name: controller
+  newName: gcr.io/issue-label-bot-dev/modelsync-controller:ef11f3c-dirty
