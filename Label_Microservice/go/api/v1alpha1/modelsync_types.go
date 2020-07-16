@@ -27,8 +27,11 @@ import (
 
 // ModelSyncSpec defines the desired state of ModelSync
 type ModelSyncSpec struct {
-	// ModelSelector selects the model to deploy based on labels
-	ModelSelector metav1.LabelSelector `json:"modelSelector,omitempty"`
+	// NeedsSyncUrl URL of the service that determines whether an update is needed.
+	NeedsSyncUrl string `json:"needsSyncUrl,omitempty"`
+
+	// Parameters configures how parameters returned by the sync URL should be passed to the pipeline.
+	Parameters []Parameter `json:"parameters,omitempty"`
 
 	PipelineRunTemplate PipelineRunTemplate `json:"pipelineRunTemplate,omitempty"`
 
@@ -37,14 +40,23 @@ type ModelSyncSpec struct {
 	// The number of successful finished jobs to retain.
 	// This is a pointer to distinguish between explicit zero and not specified.
 	// +optional
-	SuccessfulPipelineRunsHistoryLimit *int32 `json:"successfulPipelineHistoryLimit,omitempty"`
+	SuccessfulPipelineRunsHistoryLimit *int32 `json:"successfulPipelineRunsHistoryLimit,omitempty"`
 
 	// +kubebuilder:validation:Minimum=0
 
 	// The number of failed finished jobs to retain.
 	// This is a pointer to distinguish between explicit zero and not specified.
 	// +optional
-	FailedPipelineRunsHistoryLimit *int32 `json:"failedPipelineHistoryLimit,omitempty"`
+	FailedPipelineRunsHistoryLimit *int32 `json:"failedPipelineRunsHistoryLimit,omitempty"`
+}
+
+// Parameter configures a parameter
+type Parameter struct {
+	// NeedsSyncName is the name of the parameter as returned by the NeedsSyncUrl
+	// Leave empty if its the same as pipelineName.
+	NeedsSyncName string `json:"needsSyncName,omitEmpty"`
+	// PipelineName is the corresponding name of the parameter in the pipeline.
+	PipelineName string `json:"pipelineName,omitEmpty"`
 }
 
 // PipelineRunTemplate is a template for pipeline runs.

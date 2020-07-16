@@ -7,11 +7,11 @@ import (
 	"testing"
 )
 
-func TestGetSetter (t *testing.T){
+func TestGetSetter(t *testing.T) {
 	type testCase struct {
-		filePath string
+		filePath   string
 		setterPath []string
-		expected string
+		expected   string
 	}
 
 	wd, err := os.Getwd()
@@ -20,10 +20,10 @@ func TestGetSetter (t *testing.T){
 		log.Fatalf("Could not get working directiory; error %v", err)
 	}
 
-	cases := []testCase {
+	cases := []testCase{
 		{
 			filePath: path.Join(wd, "testdata", "Kptfile"),
-			setterPath: []string {
+			setterPath: []string{
 				"openAPI", "definitions", "io.k8s.cli.setters.automl-model", "x-k8s-cli", "setter", "automl-model",
 			},
 			expected: "projects/976279526634/locations/us-central1/models/TCN654213816573231104",

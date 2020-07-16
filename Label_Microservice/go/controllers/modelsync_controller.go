@@ -21,18 +21,22 @@ package controllers
 
 import (
 	"context"
-	ref "k8s.io/client-go/tools/reference"
-	"sort"
-	"time"
-
 	"github.com/go-logr/logr"
-	automlv1alpha1 "github.com/kubeflow/code-intelligence/Label_Microservice/api/v1alpha1"
+	"github.com/google/uuid"
+	automlv1alpha1 "github.com/kubeflow/code-intelligence/Label_Microservice/go/api/v1alpha1"
+	automlClient "github.com/kubeflow/code-intelligence/Label_Microservice/go/cmd/automl/pkg/client"
+	"github.com/pkg/errors"
 	tk "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
+	ref "k8s.io/client-go/tools/reference"
 	"knative.dev/pkg/apis"
+	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sort"
+	"time"
 )
 
 // ModelSyncReconciler reconciles a ModelSync object
@@ -40,6 +44,7 @@ type ModelSyncReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 type RunState string
@@ -48,6 +53,10 @@ const (
 	RunIsFailed    RunState = "Failed"
 	RunIsSucceeded RunState = "Succeded"
 	RunIsRunning   RunState = "Running"
+
+	NeedsSyncErrorReason = "NeedsSyncError"
+	CreateRunErrorReason = "CreateRunError"
+	CreateRunReason = "CreateRun"
 )
 
 var (
@@ -182,15 +191,52 @@ func (r *ModelSyncReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	constructRunForModelSync := func(modelSync *automlv1alpha1.ModelSync) (*tk.PipelineRun, error) {
+	if modelSync.Spec.NeedsSyncUrl == "" {
+		r.Recorder.Eventf(&modelSync, "Warning", NeedsSyncErrorReason, "NeedsSyncUrl is required")
+		// TODO(jlewi): Should we do exponential backoff? How would we determine the error count? Would we fetch
+		// events?
+		scheduledResult := ctrl.Result{RequeueAfter: 1 * time.Minute}
+		return scheduledResult, nil
+	}
+	needsSyncClient := &automlClient.NeedsSyncClient{
+		URL:    modelSync.Spec.NeedsSyncUrl,
+		Client: &http.Client{},
+	}
+	needsSync, err := needsSyncClient.Get()
 
+	if err != nil {
+		r.Recorder.Eventf(&modelSync, "Warning", NeedsSyncErrorReason, "Could not fetch %v; error %v", needsSyncClient.URL, err)
+		scheduledResult := ctrl.Result{RequeueAfter: 1 * time.Minute}
+		return scheduledResult, nil
+	}
+
+	if needsSync == nil {
+		log.Info("Sync lambda returned nil response")
+		scheduledResult := ctrl.Result{RequeueAfter: 1 * time.Minute}
+		return scheduledResult, nil
+	}
+
+	// TODO(jlewi): Should we adjust the reconcile period?
+	if !needsSync.NeedsSync {
+		return ctrl.Result{}, nil
+	}
+
+	constructRunForModelSync := func(modelSync *automlv1alpha1.ModelSync, params map[string]string) (*tk.PipelineRun, error) {
 		run := &tk.PipelineRun{}
 		run.Spec = *modelSync.Spec.PipelineRunTemplate.Spec.DeepCopy()
 
 		// Make sure name isn't set.
 		// TODO(jlewi): Should we allow user to set generateName
-		run.Name = ""
-		run.GenerateName = modelSync.Name + "-"
+		uuid, err := uuid.NewUUID()
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		if len(uuid.String()) < 5 {
+			return nil, errors.WithStack(errors.Errorf("UUID doesn't have at least 5 characters"))
+		}
+		// We generate the name rather then letting the APIServer do it so its predicatable.
+		run.Name = modelSync.Name + "-" + uuid.String()[0:5]
 
 		// We don't want to use run.Namespace to run in other namespaces because that could potentially create
 		// a path for privelege escalation.
@@ -203,6 +249,43 @@ func (r *ModelSyncReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return nil, err
 		}
 
+		// Create a mapping of the parameter name as returned by the lambda to the pipeline parameter
+		nameMap := map[string]string{}
+
+		for _, p := range modelSync.Spec.Parameters {
+			n := p.PipelineName
+			if p.NeedsSyncName != "" {
+				n = p.NeedsSyncName
+			}
+
+			nameMap[n] = p.PipelineName
+		}
+
+		pipelineParams := map[string]string{}
+
+		for k, v := range params {
+			pipelineParams[nameMap[k]] = v
+		}
+
+		// TODO(jlewi): We should write a unittest
+		// Overwrite any parameters that might be set in the pipelineRef in the resource
+
+		for i, p := range run.Spec.Params {
+			if v, ok := pipelineParams[p.Name]; ok {
+				run.Spec.Params[i].Value = tk.NewArrayOrString(v)
+				delete(pipelineParams, p.Name)
+			}
+		}
+
+		// Set any remaining parameters
+		for k, v := range pipelineParams {
+			run.Spec.Params = append(run.Spec.Params, tk.Param{
+				Name: k,
+				// TODO(jlewi): Support array values?
+				Value: tk.NewArrayOrString(v),
+			})
+		}
+
 		return run, nil
 	}
 
@@ -212,7 +295,7 @@ func (r *ModelSyncReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// actually make the job...
-	run, err := constructRunForModelSync(&modelSync)
+	run, err := constructRunForModelSync(&modelSync, needsSync.Parameters)
 	if err != nil {
 		log.Error(err, "unable to construct job from template")
 		// don't bother requeuing until we get a change to the spec
@@ -223,7 +306,10 @@ func (r *ModelSyncReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// ...and create it on the cluster
 	if err := r.Create(ctx, run); err != nil {
 		log.Error(err, "unable to create PipelineRun for ModelSync", "pipleineRun", run)
+		r.Recorder.Eventf(&modelSync, "Warning", CreateRunErrorReason, "Unable to create PipelineRun; error %v", err)
 		return ctrl.Result{}, err
+	} else {
+		r.Recorder.Eventf(&modelSync, "Normal",  CreateRunReason, "Created PipelineRun; %v", run.Name)
 	}
 
 	log.V(1).Info("created PipelineRun for ModelSync run", "pipelineRun", run)
@@ -264,6 +350,7 @@ func (r *ModelSyncReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
+	r.Recorder = mgr.GetEventRecorderFor("modelsync")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&automlv1alpha1.ModelSync{}).
 		// Inform the controller that we own pipelineruns so that the reconciler will be invoked if the

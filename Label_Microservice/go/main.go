@@ -27,8 +27,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	automlv1alpha1 "github.com/kubeflow/code-intelligence/Label_Microservice/api/v1alpha1"
-	"github.com/kubeflow/code-intelligence/Label_Microservice/controllers"
+	automlv1alpha1 "github.com/kubeflow/code-intelligence/Label_Microservice/go/api/v1alpha1"
+	"github.com/kubeflow/code-intelligence/Label_Microservice/go/controllers"
 	tk "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	// +kubebuilder:scaffold:imports
 )

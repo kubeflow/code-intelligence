@@ -38,23 +38,22 @@ func GetKptSetter(filePath string, setterPath []string) (string, error) {
 	rNodes, err := readYaml(filePath)
 
 	if err != nil {
-		return "", errors.WithStack(errors.Wrapf(err, "Error reading %v",  filePath))
+		return "", errors.WithStack(errors.Wrapf(err, "Error reading %v", filePath))
 	}
 
 	if len(rNodes) != 1 {
 		log.Fatalf("Expected 1 node but got many.")
-		return "", errors.WithStack(errors.Wrapf(err, "Expected 1 node but got %v.",  len(rNodes)))
+		return "", errors.WithStack(errors.Wrapf(err, "Expected 1 node but got %v.", len(rNodes)))
 	}
 
 	n := rNodes[0]
 
-	f, err  := n.Pipe(kyaml.Lookup("openAPI", "definitions", "io.k8s.cli.setters.automl-model", "x-k8s-cli", "setter", "value"))
+	f, err := n.Pipe(kyaml.Lookup("openAPI", "definitions", "io.k8s.cli.setters.automl-model", "x-k8s-cli", "setter", "value"))
 
 	if err != nil {
 		return "", errors.WithStack(errors.Wrapf(err, "Couldn't lookup setter %v in file %v;", setterPath, filePath))
 	}
 	currentModel := f.YNode().Value
-
 
 	return currentModel, nil
 }
