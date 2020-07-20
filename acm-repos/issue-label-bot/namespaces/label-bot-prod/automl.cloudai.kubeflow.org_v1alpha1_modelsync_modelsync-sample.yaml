@@ -1,0 +1,35 @@
+apiVersion: automl.cloudai.kubeflow.org/v1alpha1
+kind: ModelSync
+metadata:
+  name: modelsync-sample
+  namespace: label-bot-prod
+spec:
+  failedPipelineRunsHistoryLimit: 10
+  needsSyncUrl: http://labelbot-diff.label-bot-prod/needsSync
+  parameters:
+  - needsSyncName: name
+    pipelineName: automl-model
+  pipelineRunTemplate:
+    spec:
+      params:
+      - name: automl-model
+        value: notavlidmodel
+      - name: branchName
+        value: auto-update
+      - name: fork
+        value: git@github.com:kubeflow/code-intelligence.git
+      - name: forkName
+        value: fork
+      pipelineRef:
+        name: update-model-pr
+      resources:
+      - name: repo
+        resourceSpec:
+          params:
+          - name: url
+            value: https://github.com/kubeflow/code-intelligence.git
+          - name: revision
+            value: master
+          type: git
+      serviceAccountName: auto-update
+  successfulPipelineRunsHistoryLimit: 10

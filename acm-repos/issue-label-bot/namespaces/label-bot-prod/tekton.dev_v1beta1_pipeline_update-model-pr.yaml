@@ -1,0 +1,48 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: update-model-pr
+  namespace: label-bot-prod
+spec:
+  params:
+  - description: The name of the automl-model to use in the form projects/${PROJECT}/locations/${LOCATION}/models/${ID}
+    name: automl-model
+    type: string
+  - description: The name to give to the branch to create
+    name: branchName
+    type: string
+  - default: fork
+    description: The url of the remote repo for the fork
+    name: fork
+    type: string
+  - default: fork
+    description: (Optional) The name to give to the remote repo for the fork
+    name: forkName
+    type: string
+  - default: origin
+    description: (Optional) The name of the remote repository corresponding to the
+      upstream URL
+    name: upstreamName
+    type: string
+  resources:
+  - name: repo
+    type: git
+  tasks:
+  - name: update-model-pr
+    params:
+    - name: automl-model
+      value: $(params.automl-model)
+    - name: branchName
+      value: $(params.branchName)
+    - name: fork
+      value: $(params.fork)
+    - name: forkName
+      value: $(params.forkName)
+    - name: upstreamName
+      value: $(params.upstreamName)
+    resources:
+      inputs:
+      - name: repo
+        resource: repo
+    taskRef:
+      name: clone-modify-pr

@@ -7,7 +7,8 @@ class CRDPruner:
     with open(path) as hf:
       crd = yaml.load(hf)
 
-    # https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/
+    # TODO(https://github.com/kubeflow/code-intelligence/issues/172)
+    # https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#controlling-pruning
     crd["spec"]["validation"]["openAPIV3Schema"]["properties"]["spec"]["properties"]["pipelineRunTemplate"] = {
       "type": "object",
       "properties": {
