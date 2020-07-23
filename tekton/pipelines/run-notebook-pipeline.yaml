@@ -1,0 +1,39 @@
+# A pipeline to create a PR updating the model
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: run-notebook
+spec:
+  params: 
+  - name: notebook-path
+    type: string
+    description: Path to the notebook to run. This should be the relative path relative
+      to the root of the repository where the notebook lives.    
+  - name: output
+    type: string
+    description: This should be the GCS path that the rendered notebook will be written
+      to. This should be a GCS path that is accessible from the KF cluster where
+      the notebook runs. This should be a directory.
+  - name: requirements
+    type: string
+    description: If supplied path to a requirements file to install
+    default: ""
+  resources:
+    # Repo containing the notebook code 
+    - name: notebook-repo
+      type: git
+  tasks:
+  - name: run-notebook
+    resources:
+      inputs:
+      - name: notebook-repo
+        resource: notebook-repo
+    params:
+    - name: notebook-path
+      value: $(params.notebook-path)
+    - name: requirements
+      value: $(params.requirements)
+    - name: output
+      value: $(params.output)
+    taskRef:
+      name: run-notebook

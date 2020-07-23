@@ -1,0 +1,29 @@
+# Run the pipeline to create a PR to update the model.
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: train-label-bot-
+  namespace: label-bot-dev
+  labels:
+    pipeline: train-label-bot
+spec:
+  params:  
+  - name: notebook-path
+    value: Label_Microservice/notebooks/automl.ipynb
+  - name: requirements
+    value: Label_Microservice/requirements.train.txt
+  - name: output
+    value: gs://issue-label-bot-dev_public/label-bot/training/runs
+  resources:
+  - name: notebook-repo
+    resourceSpec:
+      type: git
+      params:
+      # TODO(jlewi): Change back to master once code is checked in.
+      - name: url
+        value: https://github.com/jlewi/code-intelligence.git
+      - name: revision
+        value: labels_gitops_tekton
+  pipelineRef:
+    name: run-notebook
+  serviceAccountName: default-editor
