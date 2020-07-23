@@ -1,0 +1,83 @@
+# Running Jupyter notebook  using Tekton
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: run-notebook
+  annotations:
+    sidecar.istio.io/inject: "false"  
+spec:
+  params:
+  - name: notebook-path
+    type: string
+    description: Path to the notebook to run. This should be the relative path relative
+      to the root of the repository where the notebook lives.    
+  - name: output
+    type: string
+    description: This should be the GCS path that the rendered notebook will be written
+      to. This should be a GCS path that is accessible from the KF cluster where
+      the notebook runs. This should be a directory.    
+  - name: image
+    type: string
+    default: gcr.io/kubeflow-images-public/tensorflow-1.15.2-notebook-cpu:1.0.0
+    description: The docker image to run the  notebook in
+  - name: requirements
+    type: string
+    description: If supplied path to a requirements file to install
+    default: ""
+
+  resources:
+    inputs:
+    # Repo containing the notebook code 
+    - name: notebook-repo
+      type: git
+  steps:
+  - name: run
+    image: $(inputs.params.image)
+    # We use a script because if notebook execution fails we don't want to
+    # exit with nonzero exit code as that will prevent the subsequent steps
+    # from running which will prevent notebook output upload
+    script: |
+      #!/usr/bin/env bash
+      set -x
+      mkdir -p /workspace/outputs
+      
+      filename=$(basename $(inputs.params.notebook-path))
+
+      # pin jupyter-client to deal with https://github.com/nteract/papermill/issues/486
+      pip install --upgrade --user papermill jupyter-client==6.1.2
+
+      # If there is a requirements.txt install it.
+      # Even if the notebook will do this its good to do it before invoking the notebook-path
+      # as this ensure any changes to the python path are properly applied
+
+      requirements_rpath=$(inputs.params.requirements)      
+      if [ -n "${requirements_rpath}" ]; then
+        requirements=/workspace/$(inputs.resources.notebook-repo.name)/${requirements_rpath}
+        pip install --user -r ${requirements}      
+      fi
+
+      rpath=$(dirname $(inputs.params.notebook-path))
+      work_dir=/workspace/$(inputs.resources.notebook-repo.name)/${rpath}
+      cd ${work_dir}
+
+      python -m papermill.cli \
+       /workspace/$(inputs.resources.notebook-repo.name)/$(inputs.params.notebook-path) \
+       /workspace/outputs/${filename} \
+       --request-save-on-cell-execute 
+
+      echo Done running notebook    
+  - name: convert
+    image: $(inputs.params.image)
+    script: |
+      #!/usr/bin/env bash
+      set -x
+      filename=$(basename $(inputs.params.notebook-path))
+      jupyter nbconvert --to html /workspace/outputs/${filename}
+
+  - name: upload
+    image: gcr.io/google.com/cloudsdktool/cloud-sdk
+    script: |
+      #!/usr/bin/env bash
+      set -x
+      now=$(date +%Y%m%d-%H%M%S)
+      gsutil cp -r /workspace/outputs/ $(inputs.params.output)/${now}

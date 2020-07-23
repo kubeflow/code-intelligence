@@ -1,0 +1,38 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: run-notebook
+  namespace: label-bot-prod
+spec:
+  params:
+  - description: Path to the notebook to run. This should be the relative path relative
+      to the root of the repository where the notebook lives.
+    name: notebook-path
+    type: string
+  - description: This should be the GCS path that the rendered notebook will be written
+      to. This should be a GCS path that is accessible from the KF cluster where the
+      notebook runs. This should be a directory.
+    name: output
+    type: string
+  - default: ""
+    description: If supplied path to a requirements file to install
+    name: requirements
+    type: string
+  resources:
+  - name: notebook-repo
+    type: git
+  tasks:
+  - name: run-notebook
+    params:
+    - name: notebook-path
+      value: $(params.notebook-path)
+    - name: requirements
+      value: $(params.requirements)
+    - name: output
+      value: $(params.output)
+    resources:
+      inputs:
+      - name: notebook-repo
+        resource: notebook-repo
+    taskRef:
+      name: run-notebook
