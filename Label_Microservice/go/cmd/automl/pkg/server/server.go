@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
+	"time"
 )
 
 const (
@@ -21,6 +22,7 @@ type Server struct {
 	Name       string
 	KptFile    string
 	SetterName string
+	RetrainInterval time.Duration
 }
 
 type NeedsSyncResponse struct {
@@ -81,6 +83,64 @@ func (s *Server) NeedsSync(w http.ResponseWriter, r *http.Request) {
 
 		response.NeedsSync = current != latest.GetName()
 
+		return nil
+	}()
+
+	if getErr != nil {
+		log.Errorf("Error determining if sync needed; %v", getErr)
+	}
+
+	buf, err := json.Marshal(response)
+	if err != nil {
+		log.Errorf("Error marshling response; %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if len(response.Errors) > 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	if _, err := w.Write(buf); err != nil {
+		log.Errorf("Error writing response; %v", err)
+	}
+}
+
+
+func (s *Server) NeedsTrain(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
+	response := &NeedsSyncResponse{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       kind,
+			APIVersion: apiVersion,
+		},
+		NeedsSync:  false,
+		Parameters: map[string]string{},
+		Errors:     []responseError{},
+	}
+
+	getErr := func() error {
+		latest, err := automl.GetLatestTrained(s.Project, s.Location, s.Name)
+
+		if err != nil {
+			appendError(response, fmt.Sprintf("Error getting latest model; %v", err))
+			return err
+		}
+
+		if latest == nil {
+			response.NeedsSync = true
+			return nil
+		}
+
+		// Retrain the model if it exceeds some age
+		now := time.Now()
+
+		age := now.Sub(latest.GetCreateTime().AsTime())
+
+		if age > s.RetrainInterval {
+			log.Infof("Latest model %v; is %v old", latest.GetName(), age)
+			response.NeedsSync = true
+		}
 		return nil
 	}()
 

@@ -1,0 +1,30 @@
+apiVersion: automl.cloudai.kubeflow.org/v1alpha1
+kind: ModelSync
+metadata:
+  name: labelbot-train
+  namespace: label-bot-prod
+spec:
+  failedPipelineRunsHistoryLimit: 10
+  needsSyncUrl: http://labelbot-diff.label-bot-prod/needsTrain
+  pipelineRunTemplate:
+    spec:
+      params:
+      - name: notebook-path
+        value: Label_Microservice/notebooks/automl.ipynb
+      - name: requirements
+        value: Label_Microservice/requirements.train.txt
+      - name: output
+        value: gs://issue-label-bot-dev_public/label-bot/training/runs
+      pipelineRef:
+        name: run-notebook
+      resources:
+      - name: notebook-repo
+        resourceSpec:
+          params:
+          - name: url
+            value: https://github.com/kubeflow/code-intelligence.git
+          - name: revision
+            value: master
+          type: git
+      serviceAccountName: default-editor
+  successfulPipelineRunsHistoryLimit: 10

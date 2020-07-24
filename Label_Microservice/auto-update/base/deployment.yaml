@@ -23,6 +23,7 @@ spec:
         - serve 
         - --kptFile=/src/code-intelligence.git/Label_Microservice/deployment/Kptfile
         - --port=8080
+        - --retrainInterval=24h
         ports:
         - containerPort: 8080
         volumeMounts:

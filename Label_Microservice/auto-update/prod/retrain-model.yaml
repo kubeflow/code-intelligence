@@ -1,0 +1,35 @@
+# This sample is intended for use with running the controller locally.
+# needsSyncUrl should point to a service running on localhost.
+# If you are running the lambda service in the cluster you need to
+# setup port-forwarding with kubectl
+apiVersion: automl.cloudai.kubeflow.org/v1alpha1
+kind: ModelSync
+metadata:
+  name: labelbot-train
+spec:
+  # This url is for the labelbot diff service. It must be deployed.  
+  failedPipelineRunsHistoryLimit: 10
+  successfulPipelineRunsHistoryLimit: 10
+  needsSyncUrl: "http://labelbot-diff.label-bot-prod/needsTrain"
+  pipelineRunTemplate:
+    spec:
+      params:  
+      - name: notebook-path
+        value: Label_Microservice/notebooks/automl.ipynb
+      - name: requirements
+        value: Label_Microservice/requirements.train.txt
+      - name: output
+        value: gs://issue-label-bot-dev_public/label-bot/training/runs
+      resources:
+      - name: notebook-repo
+        resourceSpec:
+          type: git
+          params:
+          - name: url
+            value: https://github.com/kubeflow/code-intelligence.git
+          - name: revision
+            value: master
+      pipelineRef:
+        name: run-notebook
+      serviceAccountName: default-editor
+

@@ -4,3 +4,4 @@ namespace: label-bot-prod
 resources:
 - ../base
 - modelsync.yaml
+- retrain-model.yaml

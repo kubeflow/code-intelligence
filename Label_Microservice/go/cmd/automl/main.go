@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 )
 
 func init() {
@@ -36,6 +37,7 @@ func init() {
 	serveCmd.Flags().StringVarP(&options.kptFile, "kptFile", "", "", "The path to the KptFile containing the setter.")
 	serveCmd.Flags().StringVarP(&options.setterName, "setterName", "", "automl-model", "The name of the setter.")
 	serveCmd.Flags().StringVarP(&options.port, "port", "", "80", "The port to serve on.")
+	serveCmd.Flags().StringVarP(&options.retrainInterval, "retrainInterval", "", "12h", "The time between retraining; this can be a string using the formats accepted by Duration.parse.")
 
 	serveCmd.MarkFlagRequired("kptFile")
 
@@ -50,6 +52,7 @@ type cliOptions struct {
 	kptFile    string
 	setterName string
 	port       string
+	retrainInterval string
 }
 
 type getCmdOptions struct {
@@ -71,14 +74,23 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 			router := mux.NewRouter().StrictSlash(true)
 
+			interval, err := time.ParseDuration(options.retrainInterval)
+
+			if err != nil {
+				log.Fatalf("Could not parse --retrainInterval=%v as a duration; error %v", options.retrainInterval, err)
+				return
+			}
+
 			s := &server.Server{
 				Project:    options.project,
 				Location:   options.location,
 				Name:       options.name,
 				KptFile:    options.kptFile,
 				SetterName: options.setterName,
+				RetrainInterval: interval,
 			}
 			router.HandleFunc("/needsSync", s.NeedsSync)
+			router.HandleFunc("/needsTrain", s.NeedsTrain)
 			router.HandleFunc("/", s.Healthz)
 
 			address := ":" + options.port

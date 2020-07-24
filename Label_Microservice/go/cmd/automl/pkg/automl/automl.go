@@ -46,6 +46,31 @@ func getLatestDeployedFromIt(it ModelIterator, modelName string) (*automlpb.Mode
 	return latest, nil
 }
 
+func getLatestTrainedFromIt(it ModelIterator, modelName string) (*automlpb.Model, error) {
+	var latest *automlpb.Model
+	// Iterate over all results
+	for {
+		model, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("ListModels.Next: %v", err)
+		}
+
+		if model.GetDisplayName() != modelName {
+			continue
+		}
+
+		if latest == nil || latest.CreateTime == nil || latest.GetCreateTime().AsTime().Before(model.GetCreateTime().AsTime()) {
+			latest = &automlpb.Model{}
+			proto.Merge(latest, model)
+		}
+	}
+
+	return latest, nil
+}
+
 // GetLatestDeployed finds the latest deployed model
 //
 // TODO(jlewi): We should really filter on labels; they don't appear to show up in the UI but they
@@ -67,6 +92,29 @@ func GetLatestDeployed(projectID string, location string, modelName string) (*au
 
 	it := client.ListModels(ctx, req)
 	return getLatestDeployedFromIt(it, modelName)
+}
+
+// GetLatestTrained finds the latest trained model
+//
+// TODO(jlewi): We should really filter on labels; they don't appear to show up in the UI but they
+// are in the API: https://cloud.google.com/automl/docs/reference/rest/v1/projects.locations.models#Model
+func GetLatestTrained(projectID string, location string, modelName string) (*automlpb.Model, error) {
+	// projectID := "my-project-id"
+	// location := "us-central1"
+
+	ctx := context.Background()
+	client, err := automl.NewClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("NewClient: %v", err)
+	}
+	defer client.Close()
+
+	req := &automlpb.ListModelsRequest{
+		Parent: fmt.Sprintf("projects/%s/locations/%s", projectID, location),
+	}
+
+	it := client.ListModels(ctx, req)
+	return getLatestTrainedFromIt(it, modelName)
 }
 
 // GetModel gets the specified model
