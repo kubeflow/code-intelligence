@@ -19,11 +19,10 @@ spec:
     resourceSpec:
       type: git
       params:
-      # TODO(jlewi): Change back to master once code is checked in.
       - name: url
-        value: https://github.com/jlewi/code-intelligence.git
+        value: https://github.com/kubeflow/code-intelligence.git
       - name: revision
-        value: labels_gitops_tekton
+        value: master
   pipelineRef:
     name: run-notebook
   serviceAccountName: default-editor

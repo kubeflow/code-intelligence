@@ -1,7 +1,7 @@
 apiVersion: automl.cloudai.kubeflow.org/v1alpha1
 kind: ModelSync
 metadata:
-  name: modelsync-sample
+  name: labelbot-deploy
   namespace: label-bot-prod
 spec:
   failedPipelineRunsHistoryLimit: 10

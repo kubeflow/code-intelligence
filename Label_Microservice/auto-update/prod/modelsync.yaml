@@ -5,7 +5,7 @@
 apiVersion: automl.cloudai.kubeflow.org/v1alpha1
 kind: ModelSync
 metadata:
-  name: modelsync-sample
+  name: labelbot-deploy
 spec:
   # This url is for the labelbot diff service. It must be deployed.  
   failedPipelineRunsHistoryLimit: 10
