@@ -1,8 +1,10 @@
 package automl
 
 import (
+	"bufio"
 	automl "cloud.google.com/go/automl/apiv1"
 	"context"
+	"encoding/csv"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -10,6 +12,7 @@ import (
 	"google.golang.org/api/iterator"
 	automlpb "google.golang.org/genproto/googleapis/cloud/automl/v1"
 	"google.golang.org/genproto/protobuf/field_mask"
+	"os"
 )
 
 type ModelIterator interface {
@@ -131,6 +134,71 @@ func GetModel(name string) (*automlpb.Model, error) {
 	}
 
 	return client.GetModel(ctx, req)
+}
+
+// GetModelEvaluation gets the evaluation for the specified model
+func GetModelEvaluation(name string, outputFile string) (*automlpb.ModelEvaluation, error) {
+	ctx := context.Background()
+	client, err := automl.NewClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("NewClient: %v", err)
+	}
+	defer client.Close()
+
+	req := &automlpb.ListModelEvaluationsRequest{
+		Parent: name,
+	}
+
+	var w *csv.Writer
+	if outputFile == "" {
+		w = csv.NewWriter(os.Stdout)
+	} else {
+		f, err := os.Create(outputFile)
+		if err != nil {
+			return nil, err
+		}
+
+		defer f.Close()
+		w = csv.NewWriter(bufio.NewWriter(f))
+	}
+
+	defer w.Flush()
+	it := client.ListModelEvaluations(ctx, req)
+	
+	w.Write([]string{"Label", "Precision", "Recall", "Threshold" })
+
+	// Iterate over all results
+	for {
+		e, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("ListModelEvaluationsRequest.Next: %v", err)
+		}
+
+		toString:= func(f float32) string {
+			return fmt.Sprintf("%v", f)
+		}
+		m := e.GetClassificationEvaluationMetrics()
+		for i, entry := range m.GetConfidenceMetricsEntry() {
+			// Find the first entry that is <=.5
+			if i == len(m.GetConfidenceMetricsEntry()) || m.GetConfidenceMetricsEntry()[i+1].GetConfidenceThreshold() > .5 {
+				w.Write([]string{e.GetDisplayName(),  toString(entry.GetPrecision()), toString(entry.GetRecall()), toString(entry.GetConfidenceThreshold())})
+				break
+			}
+
+		}
+
+		//log.Infof("Evaluation: %+v, %+v", e, m.GetAuRoc())
+	}
+
+	//
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	return nil, nil
 }
 
 // labelModel labels the specified model
