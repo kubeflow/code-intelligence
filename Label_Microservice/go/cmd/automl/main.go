@@ -42,6 +42,9 @@ func init() {
 	serveCmd.MarkFlagRequired("kptFile")
 
 	getCmd.Flags().StringVarP(&getOptions.name, "name", "", "", "The model to get.")
+	getCmd.Flags().StringVarP(&getOptions.project, "project", "", "issue-label-bot-dev", "Project to get AutoML models for")
+	getCmd.Flags().StringVarP(&getOptions.location, "location", "", "us-central1", "Location to search for models")
+	getCmd.Flags().StringVarP(&getOptions.outputFile, "output", "", "", "(Optional) If supplied write the evaluation scores to this file in csv format.")
 	getCmd.MarkFlagRequired("model")
 }
 
@@ -57,6 +60,9 @@ type cliOptions struct {
 
 type getCmdOptions struct {
 	name string
+	project    string
+	location   string
+	outputFile string
 }
 
 var (
@@ -104,7 +110,9 @@ var (
 		Short: "Get the specified model.",
 		Long:  `Get the specified model`,
 		Run: func(cmd *cobra.Command, args []string) {
-			model, err := automl.GetModel(getOptions.name)
+
+			name := fmt.Sprintf("projects/%v/locations/%v/models/%v", getOptions.project, getOptions.location, getOptions.name)
+			model, err := automl.GetModel(name)
 
 			if err != nil {
 				log.Fatalf("Error getting model %v; error: %v", getOptions.name, err)
@@ -117,6 +125,16 @@ var (
 			}
 
 			fmt.Printf(string(b) + "\n")
+
+			evaluation, err := automl.GetModelEvaluation(name, getOptions.outputFile)
+
+			e, err := yaml.Marshal(evaluation)
+
+			if err != nil {
+				log.Fatalf("Error marshiling the evaluation to yaml %v; error: %v", getOptions.name, err)
+			}
+
+			fmt.Printf(string(e) + "\n")
 		},
 	}
 
