@@ -28,6 +28,9 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(getCmd)
 	rootCmd.AddCommand(labelCmd)
+	rootCmd.AddCommand(isTrainCmd)
+
+	rootCmd.PersistentFlags().IntVarP(&Verbose, "verbose", "v", int(log.InfoLevel), "verbose output")
 
 	labelCmd.AddCommand(labelModelCmd)
 
@@ -46,6 +49,11 @@ func init() {
 	getCmd.Flags().StringVarP(&getOptions.location, "location", "", "us-central1", "Location to search for models")
 	getCmd.Flags().StringVarP(&getOptions.outputFile, "output", "", "", "(Optional) If supplied write the evaluation scores to this file in csv format.")
 	getCmd.MarkFlagRequired("model")
+
+
+	isTrainCmd.Flags().StringVarP(&getOptions.name, "name", "", "", "The model to get.")
+	isTrainCmd.Flags().StringVarP(&getOptions.project, "project", "", "issue-label-bot-dev", "Project to check")
+	isTrainCmd.Flags().StringVarP(&getOptions.location, "location", "", "us-central1", "Location to search for models")
 }
 
 type cliOptions struct {
@@ -66,6 +74,8 @@ type getCmdOptions struct {
 }
 
 var (
+	Verbose  int
+
 	options    = cliOptions{}
 	getOptions = getCmdOptions{}
 	rootCmd    = &cobra.Command{
@@ -78,6 +88,7 @@ var (
 		Short: "Start webserver.",
 		Long:  `starts the controller`,
 		Run: func(cmd *cobra.Command, args []string) {
+			log.SetLevel(log.Level(Verbose))
 			router := mux.NewRouter().StrictSlash(true)
 
 			interval, err := time.ParseDuration(options.retrainInterval)
@@ -110,7 +121,7 @@ var (
 		Short: "Get the specified model.",
 		Long:  `Get the specified model`,
 		Run: func(cmd *cobra.Command, args []string) {
-
+			log.SetLevel(log.Level(Verbose))
 			name := fmt.Sprintf("projects/%v/locations/%v/models/%v", getOptions.project, getOptions.location, getOptions.name)
 			model, err := automl.GetModel(name)
 
@@ -131,7 +142,7 @@ var (
 			e, err := yaml.Marshal(evaluation)
 
 			if err != nil {
-				log.Fatalf("Error marshiling the evaluation to yaml %v; error: %v", getOptions.name, err)
+				log.Fatalf("Error marshaling the evaluation to yaml %v; error: %v", getOptions.name, err)
 			}
 
 			fmt.Printf(string(e) + "\n")
@@ -148,6 +159,7 @@ var (
 		Short: "Label the specified model.",
 		Long:  `Label the specified model`,
 		Run: func(cmd *cobra.Command, args []string) {
+			log.SetLevel(log.Level(Verbose))
 			if len(args) < 2 {
 				log.Fatalf("Error usage is label models <model> label1=value1 label2=value2")
 			}
@@ -174,6 +186,22 @@ var (
 
 		},
 	}
+
+	isTrainCmd = &cobra.Command{
+		Use:   "isTraining",
+		Short: "Check if a model is being trained.",
+		Run: func(cmd *cobra.Command, args []string) {
+			log.SetLevel(log.Level(Verbose))
+			isTraining, err := automl.IsTraining(getOptions.project, getOptions.location)
+
+			if err != nil {
+				log.Fatalf("Error checking if model %v is being trained; error: %v", getOptions.name, err)
+			}
+
+			fmt.Printf("is training: %v", isTraining)
+		},
+	}
+
 )
 
 func main() {

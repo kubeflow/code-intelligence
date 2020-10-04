@@ -60,6 +60,18 @@ func (s *Server) NeedsSync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	getErr := func() error {
+		isTraining, err := automl.IsTraining(s.Project, s.Location)
+
+		if err != nil {
+			appendError(response, fmt.Sprintf("Error checking if model is being trained; %v", err))
+			return err
+		}
+
+		if isTraining {
+			log.Infof("There is model currently being trained; no sync needed.")
+			return nil
+		}
+
 		latest, err := automl.GetLatestDeployed(s.Project, s.Location, s.Name)
 
 		if err != nil {

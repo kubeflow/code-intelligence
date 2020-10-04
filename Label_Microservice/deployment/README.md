@@ -22,19 +22,21 @@ Deploying it
    skaffold build
    ```
 
-1. Edit the image
+1. Update the image
 
    ```
-   cd deployment/overlays/prod
-   kustomize edit set image gcr.io/issue-label-bot-dev/bot-worker=gcr.io/issue-label-bot-dev/bot-worker:${TAG}@${SHA}
+   cd ..
+   make update-diff-image
    ```
 
-1. Create the deployment
+1. Hydrate the GitOps manifests
 
    ```
-   cd Label_Microservice/deployment/overlays/prod
-   kustomize build | kubectl apply -f -
+   cd ..
+   make hydrate-prod
    ```
+
+1. Commit and push the manifests
 
 ## Staging/Dev
 
