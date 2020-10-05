@@ -4,12 +4,12 @@ data:
     # This file describes the models to load
     orgs:
     - name: kubeflow
-      automl_model: "projects/976279526634/locations/us-central1/models/TCN2113632983515660288" # {"$ref":"#/definitions/io.k8s.cli.setters.automl-model"}
+      automl_model: "projects/976279526634/locations/us-central1/models/TCN4131157655647420416" # {"$ref":"#/definitions/io.k8s.cli.setters.automl-model"}
 kind: ConfigMap
 metadata:
   labels:
     app: label-bot
     environment: prod
     service: label-bot
-  name: label-bot-model-config-h2fdb62btc
+  name: label-bot-model-config-99k8mgd865
   namespace: label-bot-prod

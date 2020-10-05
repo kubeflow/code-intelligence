@@ -60,7 +60,7 @@ spec:
       serviceAccountName: default-editor
       volumes:
       - configMap:
-          name: label-bot-model-config-h2fdb62btc
+          name: label-bot-model-config-99k8mgd865
         name: config
       - name: github-app
         secret:

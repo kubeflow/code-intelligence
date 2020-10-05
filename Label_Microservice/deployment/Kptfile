@@ -11,4 +11,4 @@ openAPI:
       x-k8s-cli:
         setter:
           name: automl-model
-          value: projects/976279526634/locations/us-central1/models/TCN2113632983515660288
+          value: projects/976279526634/locations/us-central1/models/TCN4131157655647420416
