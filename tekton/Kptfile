@@ -1,0 +1,22 @@
+apiVersion: kpt.dev/v1alpha1
+kind: Kptfile
+metadata:
+  name: .
+packageMetadata:
+  shortDescription: sample description
+openAPI:
+  definitions:
+    io.k8s.cli.substitutions.labelbot-diff-image:
+      x-k8s-cli:
+        substitution:
+          name: labelbot-diff-image
+          pattern: ${labelbot-diff-image}
+          values:
+          - marker: ${labelbot-diff-image}
+            ref: '#/definitions/io.k8s.cli.setters.labelbot-diff-image'
+    io.k8s.cli.setters.labelbot-diff-image:
+      x-k8s-cli:
+        setter:
+          name: labelbot-diff-image
+          value: gcr.io/issue-label-bot-dev/labelbot-diff@sha256:ce3feb1b3f8f27bacd122a50e8df8582204c2eade6854daca47c02a3ca748a6d
+          isSet: true

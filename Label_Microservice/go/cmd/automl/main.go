@@ -7,12 +7,15 @@ package main
 import (
 	"fmt"
 	"github.com/go-yaml/yaml"
+	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/mux"
 	"github.com/kubeflow/code-intelligence/Label_Microservice/go/cmd/automl/pkg/automl"
 	"github.com/kubeflow/code-intelligence/Label_Microservice/go/cmd/automl/pkg/server"
 	"github.com/onrik/logrus/filename"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"net/http"
 	"regexp"
 	"strings"
@@ -29,6 +32,9 @@ func init() {
 	rootCmd.AddCommand(getCmd)
 	rootCmd.AddCommand(labelCmd)
 	rootCmd.AddCommand(isTrainCmd)
+	rootCmd.AddCommand(deployCmd)
+
+	getCmd.AddCommand(getOpCmd)
 
 	rootCmd.PersistentFlags().IntVarP(&Verbose, "verbose", "v", int(log.InfoLevel), "verbose output")
 
@@ -54,6 +60,11 @@ func init() {
 	isTrainCmd.Flags().StringVarP(&getOptions.name, "name", "", "", "The model to get.")
 	isTrainCmd.Flags().StringVarP(&getOptions.project, "project", "", "issue-label-bot-dev", "Project to check")
 	isTrainCmd.Flags().StringVarP(&getOptions.location, "location", "", "us-central1", "Location to search for models")
+
+	// The reason we use a different format for the model in this command is to match the value
+	// that gets set in the deploy pipeline.
+	deployCmd.Flags().StringVarP(&deployOptions.model, "model", "", "", "The model to deploy if not deployed. In the form projects/${PROJECT}/locations/${LOCATION}/models/${ID}.")
+
 }
 
 type cliOptions struct {
@@ -73,11 +84,17 @@ type getCmdOptions struct {
 	outputFile string
 }
 
+type deployCmdOptions struct {
+	model string
+}
+
 var (
 	Verbose  int
 
 	options    = cliOptions{}
 	getOptions = getCmdOptions{}
+	deployOptions = deployCmdOptions{}
+
 	rootCmd    = &cobra.Command{
 		Short: "An automl model controller",
 		Long:  `A controller to synchronize your automl model with your configs`,
@@ -143,6 +160,58 @@ var (
 
 			if err != nil {
 				log.Fatalf("Error marshaling the evaluation to yaml %v; error: %v", getOptions.name, err)
+			}
+
+			fmt.Printf(string(e) + "\n")
+		},
+	}
+
+	getOpCmd = &cobra.Command{
+		Use:   "operations <name>",
+		Short: "Get the specified operation. Operation should be in the form projects/${PROJECT}/locations/${LOCATION}/operations/${ID}",
+		Run: func(cmd *cobra.Command, args []string) {
+			log.SetLevel(log.Level(Verbose))
+
+			// TODO(jlewi): If there isn't a name we should list them.
+			if len(args) != 1 {
+				log.Fatalf("Usage: get operations <name> ; name should be the operation in the form  projects/${PROJECT}/locations/${LOCATION}/operations/${ID}")
+			}
+
+			name := args[0]
+
+			model, err := automl.GetOperation(name)
+
+			if err != nil {
+				log.Fatalf("Error getting operation %v; error: %v", getOptions.name, err)
+			}
+
+			fmt.Printf(proto.MarshalTextString(model) + "\n")
+		},
+	}
+
+	deployCmd = &cobra.Command{
+		Use:   "deploy",
+		Short: "Deploy the specified model.",
+		Long:  `Deploy the specified model`,
+		Run: func(cmd *cobra.Command, args []string) {
+			log.SetLevel(log.Level(Verbose))
+			op, err := automl.DeployModel(deployOptions.model)
+
+			if err != nil {
+				sErr, ok := status.FromError(err)
+
+				log.Errorf("Error getting model %v; error: %v", getOptions.name, err)
+				if ok {
+					if sErr.Code() == codes.FailedPrecondition {
+						log.Errorf("Failed to deploy model; %v", sErr.Message())
+					}
+				}
+			}
+
+			e, err := yaml.Marshal(op)
+
+			if err != nil {
+				log.Fatalf("Error marshaling the operation to yaml; error: %v", err)
 			}
 
 			fmt.Printf(string(e) + "\n")

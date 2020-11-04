@@ -135,6 +135,44 @@ func GetModel(name string) (*automlpb.Model, error) {
 	return client.GetModel(ctx, req)
 }
 
+// GetOperation gets the specified operation
+func GetOperation(name string) (*lropb.Operation, error) {
+	ctx := context.Background()
+	client, err := automl.NewClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("NewClient: %v", err)
+	}
+	defer client.Close()
+
+	req := &lropb.GetOperationRequest{
+		Name: name,
+	}
+
+	return client.LROClient.GetOperation(ctx, req)
+}
+
+// DeployModel deploys the specified model
+func DeployModel(name string) (*automl.DeployModelOperation, error) {
+	ctx := context.Background()
+	client, err := automl.NewClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("NewClient: %v", err)
+	}
+	defer client.Close()
+
+	req := &automlpb.DeployModelRequest{
+		Name: name,
+	}
+
+	log.Infof("Deploying model %v", name)
+	op, err := client.DeployModel(ctx, req)
+
+	if err != nil {
+		log.Errorf("Error deploying model %v; error %v", name, err)
+	}
+	return op, err
+}
+
 // GetModelEvaluation gets the evaluation for the specified model
 func GetModelEvaluation(name string, outputFile string) (*automlpb.ModelEvaluation, error) {
 	ctx := context.Background()

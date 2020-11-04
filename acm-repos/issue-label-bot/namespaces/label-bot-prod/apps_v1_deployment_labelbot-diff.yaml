@@ -22,7 +22,7 @@ spec:
         - --kptFile=/src/code-intelligence.git/Label_Microservice/deployment/Kptfile
         - --port=8080
         - --retrainInterval=24h
-        image: gcr.io/issue-label-bot-dev/labelbot-diff:63789ef@sha256:9a93e576825c65b1062424869ce93d47d90fed9117891dd95e31eeb57e878a90
+        image: gcr.io/issue-label-bot-dev/labelbot-diff:4e60ec4@sha256:ce3feb1b3f8f27bacd122a50e8df8582204c2eade6854daca47c02a3ca748a6d
         name: diff
         ports:
         - containerPort: 8080
