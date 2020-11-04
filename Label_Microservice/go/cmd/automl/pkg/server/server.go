@@ -60,7 +60,7 @@ func (s *Server) NeedsSync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	getErr := func() error {
-		latest, err := automl.GetLatestDeployed(s.Project, s.Location, s.Name)
+		latest, err := automl.GetLatestTrained(s.Project, s.Location, s.Name)
 
 		if err != nil {
 			appendError(response, fmt.Sprintf("Error getting latest model; %v", err))

@@ -51,19 +51,34 @@ spec:
   # Image parameters 
   - name: prctl-image
     type: string
-    default: "gcr.io/kubeflow-images-public/prctl:a1a488e@sha256:53b4e6ff048adf8a4f9afc623e533456c7ace944f9bf03c527f07e597c86ae8c" # {"type":"string","x-kustomize":{"setBy":"kpt","partialSetters":[{"name":"prctl-image","value":"gcr.io/kubeflow-images-public/prctl:a1a488e@sha256:53b4e6ff048adf8a4f9afc623e533456c7ace944f9bf03c527f07e597c86ae8c"}]}}
+    default: "gcr.io/kubeflow-images-public/prctl:a1a488e@sha256:53b4e6ff048adf8a4f9afc623e533456c7ace944f9bf03c527f07e597c86ae8c"
     description: The image containing prctl
   - name: kpt-image
     type: string
     # Should be 0.30.1 kpt image
     default: gcr.io/kpt-dev/kpt@sha256:8a621c8e4b4d1cf5ec71f43aa099c120a78291896664a2cdb2c965a5726479ad
     description: kpt image to use
+  - name: automl-image
+    type: string
+    default: gcr.io/issue-label-bot-dev/labelbot-diff@sha256:ce3feb1b3f8f27bacd122a50e8df8582204c2eade6854daca47c02a3ca748a6d # {"$kpt-set":"labelbot-diff-image"}
+    description: The image containing the AutoML CLI used to deploy models
   resources:
     inputs:
     - name: repo
       type: git
       description: The GitHub repo containing the code to modify
   steps:
+  # Ensure the model is deployed
+  - name: deploy
+    image: $(inputs.params.automl-image)
+    # Need to use script as workaround not to error out in tests.
+    # If any of the steps returns non-zero codes, subsequent steps will not be run.
+    # See: https://github.com/tektoncd/pipeline/issues/2316
+    # With workload identity we need to specify the entrypoint so Tekton doesn't have to look it up.
+    command:
+    - /automl
+    - deploy
+    - --model=$(inputs.params.automl-model)
   # Create a branch
   - name: branch
     image: $(inputs.params.prctl-image)
