@@ -18,7 +18,7 @@ spec:
       the notebook runs. This should be a directory.    
   - name: image
     type: string
-    default: gcr.io/kubeflow-images-public/tensorflow-1.15.2-notebook-cpu:1.0.0
+    default: tensorflow/tensorflow:2.1.2-jupyter
     description: The docker image to run the  notebook in
   - name: requirements
     type: string
