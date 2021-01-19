@@ -99,7 +99,7 @@ resources:
         autoprovisioningNodePoolDefaults:
           # oauthScopes can't be set with service account
           serviceAccount: {{ KF_VM_SA_NAME }}@{{ env['project'] }}.iam.gserviceaccount.com
-          
+
         resourceLimits:
         - resourceType: 'cpu'
           maximum: {{ properties['autoprovisioning-config']['max-cpu'] }}
@@ -127,8 +127,6 @@ resources:
           machineType: {{ properties['cpu-pool-machine-type'] }}
           serviceAccount: {{ KF_VM_SA_NAME }}@{{ env['project'] }}.iam.gserviceaccount.com
           oauthScopes: {{ VM_OAUTH_SCOPES }}
-          # Set min cpu platform to ensure AVX2 is supported.
-          minCpuPlatform: 'Intel Broadwell'
   metadata:
     dependsOn:
     - {{ KF_VM_SA_NAME }}
@@ -166,8 +164,6 @@ resources:
         machineType: {{ properties['gpu-pool-machine-type'] }}
         serviceAccount: {{ KF_VM_SA_NAME }}@{{ env['project'] }}.iam.gserviceaccount.com
         oauthScopes: {{ VM_OAUTH_SCOPES }}
-        # Set min cpu platform to ensure AVX2 is supported.
-        minCpuPlatform: 'Intel Broadwell'
         accelerators:
           - acceleratorCount: {{ properties['gpu-number-per-node'] }}
             acceleratorType: {{ properties['gpu-type'] }}
