@@ -1,5 +1,7 @@
 PROJECT_ARG=--project issue-label-bot-dev
 
+# Refer to documentation:
+# https://cloud.google.com/deployment-manager/docs/deployments/updating-deployments
 
 .PHONY: list apply
 
