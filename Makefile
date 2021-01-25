@@ -7,3 +7,6 @@ apply-dev:
 
 set-prctl-image:
 	kpt cfg set ./tekton prctl-image $(shell yq r $(PRCTL_IMAGE) builds[0].tag)
+
+build-dependabot:
+	python3 hack/create_dependabot.py
