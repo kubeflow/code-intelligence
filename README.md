@@ -1,3 +1,9 @@
+## :warning: **kubeflow/code-intelligence is not maintained**
+
+This repository has been deprecated, and will be [archived](https://github.com/kubeflow/community/issues/479) soon (Nov 30th, 2021). 
+
+
+
 # Code Intelligence: ML-Powered Developer Tools
 Made with [Kubeflow](https://www.kubeflow.org/)
 
