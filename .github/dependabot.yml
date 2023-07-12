@@ -1,0 +1,146 @@
+updates:
+- assignees:
+  - hamelsmu
+  - inc0
+  - jlewi
+  directory: Label_Microservice/deployment
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - zhenghuiwang
+  schedule:
+    interval: daily
+- assignees:
+  - hamelsmu
+  - inc0
+  - jlewi
+  directory: Label_Microservice/go
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - zhenghuiwang
+  schedule:
+    interval: daily
+- assignees:
+  - hamelsmu
+  - inc0
+  - jlewi
+  directory: Issue_Embeddings
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - zhenghuiwang
+  schedule:
+    interval: daily
+- assignees:
+  - hamelsmu
+  - inc0
+  - jlewi
+  directory: Issue_Embeddings/deployment
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - zhenghuiwang
+  schedule:
+    interval: daily
+- assignees:
+  - hamelsmu
+  - inc0
+  - jlewi
+  directory: chatbot
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - zhenghuiwang
+  schedule:
+    interval: daily
+- assignees:
+  - hamelsmu
+  - inc0
+  - jlewi
+  directory: Issue_Triage
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - zhenghuiwang
+  schedule:
+    interval: daily
+- assignees:
+  - hamelsmu
+  - inc0
+  - jlewi
+  directory: Label_Microservice
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - zhenghuiwang
+  schedule:
+    interval: daily
+- assignees:
+  - hamelsmu
+  - inc0
+  - jlewi
+  directory: Issue_Embeddings
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - zhenghuiwang
+  schedule:
+    interval: daily
+- assignees:
+  - hamelsmu
+  - inc0
+  - jlewi
+  directory: Issue_Triage
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - zhenghuiwang
+  schedule:
+    interval: daily
+- assignees:
+  - abhi-g
+  - animeshsingh
+  - ashahba
+  - gabrielwen
+  - hougangliu
+  - IronPan
+  - jlewi
+  - kkasravi
+  - kunmingg
+  - lluunn
+  - richardsliu
+  - swiftdiaries
+  - terrytangyuan
+  - yanniszark
+  - zhenghuiwang
+  directory: kubeflow_clusters/code-intelligence/upstream/manifests
+  open-pull-requests-limit: 10
+  package-ecosystem: gomod
+  reviewers:
+  - krishnadurai
+  schedule:
+    interval: daily
+- assignees:
+  - hamelsmu
+  - inc0
+  - jlewi
+  directory: Label_Microservice/go
+  open-pull-requests-limit: 10
+  package-ecosystem: gomod
+  reviewers:
+  - zhenghuiwang
+  schedule:
+    interval: daily
+- assignees:
+  - hamelsmu
+  - inc0
+  - jlewi
+  directory: chatbot
+  open-pull-requests-limit: 10
+  package-ecosystem: gomod
+  reviewers:
+  - zhenghuiwang
+  schedule:
+    interval: daily
+version: 2
